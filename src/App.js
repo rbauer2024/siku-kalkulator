@@ -2,9 +2,6 @@ import React, { useState } from "react";
 import "./App.css";
 
 export default function App() {
-  // -----------------------------
-  // STATES
-  // -----------------------------
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [projectEmail, setProjectEmail] = useState("");
@@ -23,9 +20,6 @@ export default function App() {
     },
   ]);
 
-  // -----------------------------
-  // HELPER: Watt pro m³ je Dämmstandard
-  // -----------------------------
   const insulationOptions = [
     { label: "Sehr gut (20 W/m³)", value: "20" },
     { label: "Gut (25 W/m³)", value: "25" },
@@ -33,7 +27,6 @@ export default function App() {
     { label: "Altbau (35 W/m³)", value: "35" },
   ];
 
-  // Heizplatten-Modelle je Montageart
   const plateOptions = {
     WW: [
       { name: "SIKU IPP 600 WW", power: 600 },
@@ -49,9 +42,6 @@ export default function App() {
     ],
   };
 
-  // -----------------------------
-  // BERECHNUNG
-  // -----------------------------
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
@@ -60,7 +50,6 @@ export default function App() {
     const models = plateOptions[room.mounting] || [];
     if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
 
-    // passende Platte: immer die größere nehmen
     const best = models[models.length - 1];
     const count = Math.ceil(need / best.power);
 
@@ -70,9 +59,6 @@ export default function App() {
     };
   }
 
-  // -----------------------------
-  // JSX
-  // -----------------------------
   return (
     <div className="container">
       {/* HEADER */}
@@ -116,7 +102,7 @@ export default function App() {
           return (
             <div key={index} className="room">
               {/* Eingaben links */}
-              <div>
+              <div className="inputs">
                 <label>Raumname</label>
                 <input
                   type="text"
