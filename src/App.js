@@ -38,13 +38,13 @@ const PRODUCTS = [
   { id: "IPP-FT01", name: "SIKU IPP-FT01 Digitales Funk-Raumthermostat", watt: 0, type: "Thermostat" },
 ];
 
-// Faktoren
+// Dämmwerte
 const INSULATION_PRESETS = [
-  { key: "passiv", label: "Passivhaus/Neubau sehr gut", wpm3: 18 },
-  { key: "gut", label: "Gut gedämmt", wpm3: 24 },
-  { key: "mittel", label: "Durchschnittlich", wpm3: 30 },
-  { key: "schlecht", label: "Altbau mäßig", wpm3: 36 },
-  { key: "sehrschlecht", label: "Altbau/ungedämmt", wpm3: 42 },
+  { key: "passiv", label: "Passivhaus/Neubau sehr gut (18 W/m³)", wpm3: 18 },
+  { key: "gut", label: "Gut gedämmt (24 W/m³)", wpm3: 24 },
+  { key: "mittel", label: "Durchschnittlich (30 W/m³)", wpm3: 30 },
+  { key: "schlecht", label: "Altbau mäßig (36 W/m³)", wpm3: 36 },
+  { key: "sehrschlecht", label: "Altbau/ungedämmt (42 W/m³)", wpm3: 42 },
 ];
 
 const WINDOW_FACTORS = [
@@ -60,36 +60,37 @@ const USAGE_FACTORS = [
   { key: "selten", label: "Selten genutzt", factor: 1.1 },
 ];
 
+// -----------------------------
 // Berechnung pro Raum
-function recommendForRoom(room, catalog, receiverType) {
+// -----------------------------
+function recommendForRoom(room, catalog) {
   const volume = room.area * room.height;
   const baseWpm3 = INSULATION_PRESETS.find(x => x.key === room.insulation)?.wpm3 ?? 30;
   const winF = WINDOW_FACTORS.find(x => x.key === room.windowKey)?.factor ?? 1;
   const useF = USAGE_FACTORS.find(x => x.key === room.usageKey)?.factor ?? 1;
-  const required = volume * baseWpm3 * winF * useF * (1 + room.safety / 100);
+  const required = volume * baseWpm3 * winF * useF;
 
-  const sorted = [...catalog.filter(p => ["WW", "DW", "DC"].includes(p.type))].sort((a, b) => b.watt - a.watt);
-  let rest = Math.ceil(required);
-  const panels = [];
+  // Sortierte Platten (klein → groß)
+  const sorted = [...catalog.filter(p => ["WW","DW","DC"].includes(p.type))].sort((a,b)=>a.watt-b.watt);
 
-  for (const p of sorted) {
-    if (rest <= 0) break;
-    const qty = Math.floor(rest / p.watt);
-    if (qty > 0) { panels.push({ product: p, qty }); rest -= qty * p.watt; }
-  }
-  if (rest > 0) panels.push({ product: sorted[sorted.length - 1], qty: 1 });
+  // passende Platte suchen
+  let candidate = sorted.find(p => p.watt >= required) || sorted[sorted.length-1];
+  if (!candidate) return { panels: [], accessories: [], receivers: [], thermostats: [], required };
+
+  // Anzahl ermitteln (immer gleiche Platte verwenden)
+  let qty = Math.ceil(required / candidate.watt);
+
+  const panels = [{ product: candidate, qty }];
 
   const accessories = [];
-  panels.forEach(({ product, qty }) => {
-    if (product.accessoryNeeded) {
-      const acc = catalog.find(x => x.id === product.accessoryNeeded);
-      if (acc) accessories.push({ product: acc, qty });
-    }
-  });
+  if (candidate.accessoryNeeded) {
+    const acc = catalog.find(x => x.id === candidate.accessoryNeeded);
+    if (acc) accessories.push({ product: acc, qty });
+  }
 
   const receivers = [];
-  const rcv = catalog.find(p => p.id === receiverType);
-  if (rcv) receivers.push({ product: rcv, qty: panels.reduce((s, x) => s + x.qty, 0) });
+  const rcv = catalog.find(p => p.id === room.receiver);
+  if (rcv) receivers.push({ product: rcv, qty });
 
   const thermo = catalog.find(p => p.id === room.thermostat);
   const thermostats = thermo ? [{ product: thermo, qty: 1 }] : [];
@@ -102,12 +103,15 @@ function recommendForRoom(room, catalog, receiverType) {
 // -----------------------------
 export default function App() {
   const [rooms, setRooms] = useState([]);
-  const [receiverType, setReceiverType] = useState("IPP-R01");
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [projectMail, setProjectMail] = useState("");
+  const [calculate, setCalculate] = useState(false);
 
-  const results = useMemo(() => rooms.map(r => ({ room: r, rec: recommendForRoom(r, PRODUCTS, receiverType) })), [rooms, receiverType]);
+  const results = useMemo(() => {
+    if (!calculate) return [];
+    return rooms.map(r => ({ room: r, rec: recommendForRoom(r, PRODUCTS) }));
+  }, [rooms, calculate]);
 
   const totals = {};
   results.forEach(({ rec }) => {
@@ -164,7 +168,16 @@ export default function App() {
   };
 
   const addRoom = () => {
-    setRooms([...rooms, { id: Date.now().toString(), name: "Wohnzimmer", area: 20, height: 2.6, insulation: "mittel", windowKey: "mittel", usageKey: "dauer", safety: 10, thermostat: "BT010" }]);
+    setRooms([...rooms, { 
+      id: Date.now().toString(), 
+      name: "Wohnzimmer", 
+      area: 20, height: 2.6, 
+      insulation: "mittel", 
+      windowKey: "mittel", 
+      usageKey: "dauer", 
+      thermostat: "BT010",
+      receiver: "IPP-R01"
+    }]);
   };
 
   return (
@@ -177,19 +190,6 @@ export default function App() {
         <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Projektname / Kunde" className="border p-2 rounded w-full mb-2" />
         <input value={projectAddress} onChange={e => setProjectAddress(e.target.value)} placeholder="Adresse" className="border p-2 rounded w-full mb-2" />
         <input value={projectMail} onChange={e => setProjectMail(e.target.value)} placeholder="E-Mail" className="border p-2 rounded w-full" />
-      </div>
-
-      {/* Steuerung */}
-      <div className="mb-6 p-4 border rounded bg-gray-50">
-        <h2 className="text-lg font-semibold mb-2">Steuerung</h2>
-        <label className="block text-sm mb-1">Empfänger-Typ (gilt für alle Platten)</label>
-        <select value={receiverType} onChange={e => setReceiverType(e.target.value)} className="border p-2 rounded">
-          <option value="IPP-R01">IPP-R01 (Unterputz)</option>
-          <option value="BT003">BT003 (Steckdose)</option>
-        </select>
-        <div style={{fontSize:12, color:"#666", marginTop:6}}>
-          Hinweis: Automatisch 1 Empfänger je Heizplatte in der Berechnung.
-        </div>
       </div>
 
       {/* Räume */}
@@ -228,25 +228,31 @@ export default function App() {
               </select>
             </div>
             <div>
-              <label className="block text-xs mb-1">Sicherheitszuschlag (%)</label>
-              <input type="number" value={room.safety} onChange={e => { const v=[...rooms]; v[idx].safety=parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded w-full" />
-            </div>
-            <div>
               <label className="block text-xs mb-1">Thermostat (pro Raum)</label>
               <select value={room.thermostat} onChange={e => { const v=[...rooms]; v[idx].thermostat=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
                 <option value="BT010">BT010 (einfach)</option>
                 <option value="IPP-FT01">IPP-FT01 (digital)</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs mb-1">Empfänger (pro Raum)</label>
+              <select value={room.receiver} onChange={e => { const v=[...rooms]; v[idx].receiver=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
+                <option value="IPP-R01">IPP-R01 (Unterputz)</option>
+                <option value="BT003">BT003 (Steckdose)</option>
+              </select>
+            </div>
           </div>
         </div>
       ))}
       <button onClick={addRoom} className="bg-black text-white px-4 py-2 rounded">+ Raum hinzufügen</button>
+      <button onClick={() => setCalculate(true)} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Berechnen</button>
 
-      {/* PDF Export */}
-      <div className="mt-6">
-        <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded">PDF exportieren</button>
-      </div>
+      {/* Ergebnisse + PDF */}
+      {calculate && (
+        <div className="mt-6">
+          <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded">PDF exportieren</button>
+        </div>
+      )}
     </div>
   );
 }
