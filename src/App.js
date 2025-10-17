@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import "./App.css";
 
 // -----------------------------
 // Produktliste
@@ -180,96 +181,94 @@ export default function App() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">SIKU Infrarot-Heizplatten Kalkulator</h1>
+    <div>
+      {/* Header mit Logo */}
+      <header>
+        <img src="/SIKU_Air_Technologies_horizontal_CMYK - 2000_700.jpg" alt="SIKU Logo" />
+        <h1>SIKU Infrarot-Heizplatten Kalkulator</h1>
+      </header>
 
-      {/* Projekt-Daten */}
-      <div className="mb-6 p-4 border rounded bg-gray-50">
-        <h2 className="text-lg font-semibold mb-2">Projekt-Daten (optional)</h2>
-        <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Projektname / Kunde" className="border p-2 rounded w-full mb-2" />
-        <input value={projectAddress} onChange={e => setProjectAddress(e.target.value)} placeholder="Adresse" className="border p-2 rounded w-full mb-2" />
-        <input value={projectMail} onChange={e => setProjectMail(e.target.value)} placeholder="E-Mail" className="border p-2 rounded w-full" />
-      </div>
+      <div className="container">
+        {/* Projekt-Daten */}
+        <div className="section">
+          <h2>Projekt-Daten (optional)</h2>
+          <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Projektname / Kunde" className="mb-2" />
+          <input value={projectAddress} onChange={e => setProjectAddress(e.target.value)} placeholder="Adresse" className="mb-2" />
+          <input value={projectMail} onChange={e => setProjectMail(e.target.value)} placeholder="E-Mail" />
+        </div>
 
-      {/* Räume */}
-      <h2 className="text-lg font-semibold mb-2">Räume</h2>
-      {rooms.map((room, idx) => (
-        <div key={room.id} className="mb-4 p-4 border rounded bg-white">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs mb-1">Raumname</label>
-              <input value={room.name} onChange={e => { const v=[...rooms]; v[idx].name=e.target.value; setRooms(v); }} className="border p-2 rounded w-full" />
+        {/* Räume */}
+        <div className="section">
+          <h2>Räume</h2>
+          {rooms.map((room, idx) => (
+            <div key={room.id} className="room-card">
+              <div className="grid">
+                <label>Raumname</label>
+                <input value={room.name} onChange={e => { const v=[...rooms]; v[idx].name=e.target.value; setRooms(v); }} />
+
+                <label>Fläche (m²)</label>
+                <input type="number" value={room.area} onChange={e => { const v=[...rooms]; v[idx].area=parseFloat(e.target.value); setRooms(v); }} />
+
+                <label>Deckenhöhe (m)</label>
+                <input type="number" value={room.height} onChange={e => { const v=[...rooms]; v[idx].height=parseFloat(e.target.value); setRooms(v); }} />
+
+                <label>Dämmstandard</label>
+                <select value={room.insulation} onChange={e => { const v=[...rooms]; v[idx].insulation=e.target.value; setRooms(v); }}>
+                  {INSULATION_PRESETS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
+                </select>
+
+                <label>Fensteranteil</label>
+                <select value={room.windowKey} onChange={e => { const v=[...rooms]; v[idx].windowKey=e.target.value; setRooms(v); }}>
+                  {WINDOW_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
+                </select>
+
+                <label>Nutzungsart</label>
+                <select value={room.usageKey} onChange={e => { const v=[...rooms]; v[idx].usageKey=e.target.value; setRooms(v); }}>
+                  {USAGE_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
+                </select>
+
+                <label>Thermostat (pro Raum)</label>
+                <select value={room.thermostat} onChange={e => { const v=[...rooms]; v[idx].thermostat=e.target.value; setRooms(v); }}>
+                  <option value="BT010">BT010 (einfach)</option>
+                  <option value="IPP-FT01">IPP-FT01 (digital)</option>
+                </select>
+
+                <label>Empfänger (pro Platte)</label>
+                <select value={room.receiver} onChange={e => { const v=[...rooms]; v[idx].receiver=e.target.value; setRooms(v); }}>
+                  <option value="IPP-R01">IPP-R01 (Unterputz)</option>
+                  <option value="BT003">BT003 (Steckdose)</option>
+                </select>
+
+                <label>Montageart</label>
+                <select value={room.mountType} onChange={e => { const v=[...rooms]; v[idx].mountType=e.target.value; setRooms(v); }}>
+                  <option value="WW">Wand (WW)</option>
+                  <option value="DW">Decke abgehängt (DW)</option>
+                  <option value="DC">Decke direkt (DC)</option>
+                </select>
+              </div>
+
+              {/* Ausgabe */}
+              {calculate && (
+                <div className="result">
+                  <strong>Berechnung:</strong><br/>
+                  Bedarf: {Math.round(recommendForRoom(room, PRODUCTS).required)} W<br/>
+                  {recommendForRoom(room, PRODUCTS).panels.map(({product,qty}) => (
+                    <div key={product.id}>{qty} × {product.name} ({product.watt} W)</div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs mb-1">Fläche (m²)</label>
-              <input type="number" value={room.area} onChange={e => { const v=[...rooms]; v[idx].area=parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Deckenhöhe (m)</label>
-              <input type="number" value={room.height} onChange={e => { const v=[...rooms]; v[idx].height=parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded w-full" />
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Dämmstandard</label>
-              <select value={room.insulation} onChange={e => { const v=[...rooms]; v[idx].insulation=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
-                {INSULATION_PRESETS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Fensteranteil</label>
-              <select value={room.windowKey} onChange={e => { const v=[...rooms]; v[idx].windowKey=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
-                {WINDOW_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Nutzungsart</label>
-              <select value={room.usageKey} onChange={e => { const v=[...rooms]; v[idx].usageKey=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
-                {USAGE_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Thermostat (pro Raum)</label>
-              <select value={room.thermostat} onChange={e => { const v=[...rooms]; v[idx].thermostat=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
-                <option value="BT010">BT010 (einfach)</option>
-                <option value="IPP-FT01">IPP-FT01 (digital)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Empfänger (pro Platte)</label>
-              <select value={room.receiver} onChange={e => { const v=[...rooms]; v[idx].receiver=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
-                <option value="IPP-R01">IPP-R01 (Unterputz)</option>
-                <option value="BT003">BT003 (Steckdose)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Montageart</label>
-              <select value={room.mountType} onChange={e => { const v=[...rooms]; v[idx].mountType=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
-                <option value="WW">Wand (WW)</option>
-                <option value="DW">Decke abgehängt (DW)</option>
-                <option value="DC">Decke direkt (DC)</option>
-              </select>
-            </div>
+          ))}
+          <button onClick={addRoom}>+ Raum hinzufügen</button>
+          <button onClick={() => setCalculate(true)} className="ml-2">Berechnen</button>
+        </div>
+
+        {calculate && (
+          <div className="section">
+            <button onClick={exportPDF}>PDF exportieren</button>
           </div>
-
-          {/* Ausgabe pro Raum */}
-          {calculate && (
-            <div className="mt-3 text-sm bg-gray-50 p-2 rounded">
-              <strong>Berechnung:</strong><br/>
-              Bedarf: {Math.round(recommendForRoom(room, PRODUCTS).required)} W<br/>
-              {recommendForRoom(room, PRODUCTS).panels.map(({product,qty}) => (
-                <div key={product.id}>{qty} × {product.name} ({product.watt} W)</div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-      <button onClick={addRoom} className="bg-black text-white px-4 py-2 rounded">+ Raum hinzufügen</button>
-      <button onClick={() => setCalculate(true)} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Berechnen</button>
-
-      {calculate && (
-        <div className="mt-6">
-          <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded">PDF exportieren</button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
