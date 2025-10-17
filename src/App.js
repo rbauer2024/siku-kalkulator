@@ -3,33 +3,9 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 // -----------------------------
-// Produkt-Definition
-// -----------------------------
-type Product = {
-  id: string;
-  name: string;
-  watt: number;
-  size?: string;
-  type: "WW" | "DW" | "DC" | "Zubehör" | "Empfänger" | "Thermostat";
-  accessoryNeeded?: string;
-};
-
-type Room = {
-  id: string;
-  name: string;
-  area: number;
-  height: number;
-  insulation: string;
-  windowKey: string;
-  usageKey: string;
-  safety: number;
-  thermostat: string;
-};
-
-// -----------------------------
 // Produktliste
 // -----------------------------
-const PRODUCTS: Product[] = [
+const PRODUCTS = [
   // WW
   { id: "IPP160WW", name: "SIKU IPP 160 WW", watt: 160, size: "905×205×22 mm", type: "WW" },
   { id: "IPP330WW", name: "SIKU IPP 330 WW", watt: 350, size: "1205×305×22 mm", type: "WW" },
@@ -62,9 +38,7 @@ const PRODUCTS: Product[] = [
   { id: "IPP-FT01", name: "SIKU IPP-FT01 Digitales Funk-Raumthermostat", watt: 0, type: "Thermostat" },
 ];
 
-// -----------------------------
 // Faktoren
-// -----------------------------
 const INSULATION_PRESETS = [
   { key: "passiv", label: "Passivhaus/Neubau sehr gut", wpm3: 18 },
   { key: "gut", label: "Gut gedämmt", wpm3: 24 },
@@ -86,10 +60,8 @@ const USAGE_FACTORS = [
   { key: "selten", label: "Selten genutzt", factor: 1.1 },
 ];
 
-// -----------------------------
 // Berechnung pro Raum
-// -----------------------------
-function recommendForRoom(room: Room, catalog: Product[], receiverType: string) {
+function recommendForRoom(room, catalog, receiverType) {
   const volume = room.area * room.height;
   const baseWpm3 = INSULATION_PRESETS.find(x => x.key === room.insulation)?.wpm3 ?? 30;
   const winF = WINDOW_FACTORS.find(x => x.key === room.windowKey)?.factor ?? 1;
@@ -98,7 +70,7 @@ function recommendForRoom(room: Room, catalog: Product[], receiverType: string) 
 
   const sorted = [...catalog.filter(p => ["WW", "DW", "DC"].includes(p.type))].sort((a, b) => b.watt - a.watt);
   let rest = Math.ceil(required);
-  const panels: { product: Product; qty: number }[] = [];
+  const panels = [];
 
   for (const p of sorted) {
     if (rest <= 0) break;
@@ -107,7 +79,7 @@ function recommendForRoom(room: Room, catalog: Product[], receiverType: string) 
   }
   if (rest > 0) panels.push({ product: sorted[sorted.length - 1], qty: 1 });
 
-  const accessories: { product: Product; qty: number }[] = [];
+  const accessories = [];
   panels.forEach(({ product, qty }) => {
     if (product.accessoryNeeded) {
       const acc = catalog.find(x => x.id === product.accessoryNeeded);
@@ -115,7 +87,7 @@ function recommendForRoom(room: Room, catalog: Product[], receiverType: string) 
     }
   });
 
-  const receivers: { product: Product; qty: number }[] = [];
+  const receivers = [];
   const rcv = catalog.find(p => p.id === receiverType);
   if (rcv) receivers.push({ product: rcv, qty: panels.reduce((s, x) => s + x.qty, 0) });
 
@@ -129,15 +101,15 @@ function recommendForRoom(room: Room, catalog: Product[], receiverType: string) 
 // Main Component
 // -----------------------------
 export default function App() {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [receiverType, setReceiverType] = useState<string>("IPP-R01");
+  const [rooms, setRooms] = useState([]);
+  const [receiverType, setReceiverType] = useState("IPP-R01");
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [projectMail, setProjectMail] = useState("");
 
   const results = useMemo(() => rooms.map(r => ({ room: r, rec: recommendForRoom(r, PRODUCTS, receiverType) })), [rooms, receiverType]);
 
-  const totals: { [key: string]: number } = {};
+  const totals = {};
   results.forEach(({ rec }) => {
     [...rec.panels, ...rec.accessories, ...rec.receivers, ...rec.thermostats].forEach(({ product, qty }) => {
       totals[product.name] = (totals[product.name] || 0) + qty;
@@ -171,7 +143,7 @@ export default function App() {
         theme: "grid",
         styles: { fontSize: 9 },
       });
-      yPos = (doc as any).lastAutoTable.finalY + 10;
+      yPos = (doc).lastAutoTable.finalY + 10;
     });
 
     doc.setFontSize(12);
@@ -199,7 +171,6 @@ export default function App() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">SIKU Infrarot-Heizplatten Kalkulator</h1>
 
-      {/* Projekt-Daten */}
       <div className="mb-6 p-4 border rounded bg-gray-50">
         <h2 className="text-lg font-semibold mb-2">Projekt-Daten (optional)</h2>
         <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Projektname / Kunde" className="border p-2 rounded w-full mb-2" />
@@ -207,7 +178,6 @@ export default function App() {
         <input value={projectMail} onChange={e => setProjectMail(e.target.value)} placeholder="E-Mail" className="border p-2 rounded w-full" />
       </div>
 
-      {/* Empfänger Auswahl */}
       <div className="mb-6">
         <label className="block mb-1">Empfänger-Typ wählen</label>
         <select value={receiverType} onChange={e => setReceiverType(e.target.value)} className="border p-2 rounded">
@@ -216,7 +186,6 @@ export default function App() {
         </select>
       </div>
 
-      {/* Räume */}
       <h2 className="text-lg font-semibold mb-2">Räume</h2>
       {rooms.map((room, idx) => (
         <div key={room.id} className="mb-4 p-4 border rounded bg-white">
@@ -244,7 +213,6 @@ export default function App() {
       ))}
       <button onClick={addRoom} className="bg-black text-white px-4 py-2 rounded">+ Raum hinzufügen</button>
 
-      {/* PDF Export */}
       <div className="mt-6">
         <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded">PDF exportieren</button>
       </div>
