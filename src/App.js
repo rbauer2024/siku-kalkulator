@@ -70,14 +70,12 @@ function recommendForRoom(room, catalog) {
   const useF = USAGE_FACTORS.find(x => x.key === room.usageKey)?.factor ?? 1;
   const required = volume * baseWpm3 * winF * useF;
 
-  // Sortierte Platten (klein → groß)
-  const sorted = [...catalog.filter(p => ["WW","DW","DC"].includes(p.type))].sort((a,b)=>a.watt-b.watt);
+  // Filter nach Montageart
+  const sorted = [...catalog.filter(p => p.type === room.mountType)].sort((a,b)=>a.watt-b.watt);
 
-  // passende Platte suchen
   let candidate = sorted.find(p => p.watt >= required) || sorted[sorted.length-1];
   if (!candidate) return { panels: [], accessories: [], receivers: [], thermostats: [], required };
 
-  // Anzahl ermitteln (immer gleiche Platte verwenden)
   let qty = Math.ceil(required / candidate.watt);
 
   const panels = [{ product: candidate, qty }];
@@ -176,7 +174,8 @@ export default function App() {
       windowKey: "mittel", 
       usageKey: "dauer", 
       thermostat: "BT010",
-      receiver: "IPP-R01"
+      receiver: "IPP-R01",
+      mountType: "WW"
     }]);
   };
 
@@ -235,19 +234,37 @@ export default function App() {
               </select>
             </div>
             <div>
-              <label className="block text-xs mb-1">Empfänger (pro Raum)</label>
+              <label className="block text-xs mb-1">Empfänger (pro Platte)</label>
               <select value={room.receiver} onChange={e => { const v=[...rooms]; v[idx].receiver=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
                 <option value="IPP-R01">IPP-R01 (Unterputz)</option>
                 <option value="BT003">BT003 (Steckdose)</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs mb-1">Montageart</label>
+              <select value={room.mountType} onChange={e => { const v=[...rooms]; v[idx].mountType=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
+                <option value="WW">Wand (WW)</option>
+                <option value="DW">Decke abgehängt (DW)</option>
+                <option value="DC">Decke direkt (DC)</option>
+              </select>
+            </div>
           </div>
+
+          {/* Ausgabe pro Raum */}
+          {calculate && (
+            <div className="mt-3 text-sm bg-gray-50 p-2 rounded">
+              <strong>Berechnung:</strong><br/>
+              Bedarf: {Math.round(recommendForRoom(room, PRODUCTS).required)} W<br/>
+              {recommendForRoom(room, PRODUCTS).panels.map(({product,qty}) => (
+                <div key={product.id}>{qty} × {product.name} ({product.watt} W)</div>
+              ))}
+            </div>
+          )}
         </div>
       ))}
       <button onClick={addRoom} className="bg-black text-white px-4 py-2 rounded">+ Raum hinzufügen</button>
       <button onClick={() => setCalculate(true)} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Berechnen</button>
 
-      {/* Ergebnisse + PDF */}
       {calculate && (
         <div className="mt-6">
           <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded">PDF exportieren</button>
