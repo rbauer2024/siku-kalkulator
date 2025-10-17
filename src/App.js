@@ -164,13 +164,14 @@ export default function App() {
   };
 
   const addRoom = () => {
-    setRooms([...rooms, { id: Date.now().toString(), name: "Neuer Raum", area: 20, height: 2.6, insulation: "mittel", windowKey: "mittel", usageKey: "dauer", safety: 10, thermostat: "BT010" }]);
+    setRooms([...rooms, { id: Date.now().toString(), name: "Wohnzimmer", area: 20, height: 2.6, insulation: "mittel", windowKey: "mittel", usageKey: "dauer", safety: 10, thermostat: "BT010" }]);
   };
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">SIKU Infrarot-Heizplatten Kalkulator</h1>
 
+      {/* Projekt-Daten */}
       <div className="mb-6 p-4 border rounded bg-gray-50">
         <h2 className="text-lg font-semibold mb-2">Projekt-Daten (optional)</h2>
         <input value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="Projektname / Kunde" className="border p-2 rounded w-full mb-2" />
@@ -178,41 +179,71 @@ export default function App() {
         <input value={projectMail} onChange={e => setProjectMail(e.target.value)} placeholder="E-Mail" className="border p-2 rounded w-full" />
       </div>
 
-      <div className="mb-6">
-        <label className="block mb-1">Empfänger-Typ wählen</label>
+      {/* Steuerung */}
+      <div className="mb-6 p-4 border rounded bg-gray-50">
+        <h2 className="text-lg font-semibold mb-2">Steuerung</h2>
+        <label className="block text-sm mb-1">Empfänger-Typ (gilt für alle Platten)</label>
         <select value={receiverType} onChange={e => setReceiverType(e.target.value)} className="border p-2 rounded">
           <option value="IPP-R01">IPP-R01 (Unterputz)</option>
           <option value="BT003">BT003 (Steckdose)</option>
         </select>
+        <div style={{fontSize:12, color:"#666", marginTop:6}}>
+          Hinweis: Automatisch 1 Empfänger je Heizplatte in der Berechnung.
+        </div>
       </div>
 
+      {/* Räume */}
       <h2 className="text-lg font-semibold mb-2">Räume</h2>
       {rooms.map((room, idx) => (
         <div key={room.id} className="mb-4 p-4 border rounded bg-white">
-          <input value={room.name} onChange={e => { const v = [...rooms]; v[idx].name = e.target.value; setRooms(v); }} className="border p-2 rounded w-full mb-2" />
           <div className="grid grid-cols-2 gap-2">
-            <input type="number" value={room.area} onChange={e => { const v = [...rooms]; v[idx].area = parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded" placeholder="Fläche m²" />
-            <input type="number" value={room.height} onChange={e => { const v = [...rooms]; v[idx].height = parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded" placeholder="Höhe m" />
-
-            <select value={room.insulation} onChange={e => { const v = [...rooms]; v[idx].insulation = e.target.value; setRooms(v); }} className="border p-2 rounded">
-              {INSULATION_PRESETS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
-            </select>
-            <select value={room.windowKey} onChange={e => { const v = [...rooms]; v[idx].windowKey = e.target.value; setRooms(v); }} className="border p-2 rounded">
-              {WINDOW_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
-            </select>
-            <select value={room.usageKey} onChange={e => { const v = [...rooms]; v[idx].usageKey = e.target.value; setRooms(v); }} className="border p-2 rounded">
-              {USAGE_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
-            </select>
-            <input type="number" value={room.safety} onChange={e => { const v = [...rooms]; v[idx].safety = parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded" placeholder="Zuschlag %" />
-            <select value={room.thermostat} onChange={e => { const v = [...rooms]; v[idx].thermostat = e.target.value; setRooms(v); }} className="border p-2 rounded">
-              <option value="BT010">BT010 (einfach)</option>
-              <option value="IPP-FT01">IPP-FT01 (digital)</option>
-            </select>
+            <div>
+              <label className="block text-xs mb-1">Raumname</label>
+              <input value={room.name} onChange={e => { const v=[...rooms]; v[idx].name=e.target.value; setRooms(v); }} className="border p-2 rounded w-full" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Fläche (m²)</label>
+              <input type="number" value={room.area} onChange={e => { const v=[...rooms]; v[idx].area=parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded w-full" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Deckenhöhe (m)</label>
+              <input type="number" value={room.height} onChange={e => { const v=[...rooms]; v[idx].height=parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded w-full" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Dämmstandard</label>
+              <select value={room.insulation} onChange={e => { const v=[...rooms]; v[idx].insulation=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
+                {INSULATION_PRESETS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Fensteranteil</label>
+              <select value={room.windowKey} onChange={e => { const v=[...rooms]; v[idx].windowKey=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
+                {WINDOW_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Nutzungsart</label>
+              <select value={room.usageKey} onChange={e => { const v=[...rooms]; v[idx].usageKey=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
+                {USAGE_FACTORS.map(x => (<option key={x.key} value={x.key}>{x.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Sicherheitszuschlag (%)</label>
+              <input type="number" value={room.safety} onChange={e => { const v=[...rooms]; v[idx].safety=parseFloat(e.target.value); setRooms(v); }} className="border p-2 rounded w-full" />
+            </div>
+            <div>
+              <label className="block text-xs mb-1">Thermostat (pro Raum)</label>
+              <select value={room.thermostat} onChange={e => { const v=[...rooms]; v[idx].thermostat=e.target.value; setRooms(v); }} className="border p-2 rounded w-full">
+                <option value="BT010">BT010 (einfach)</option>
+                <option value="IPP-FT01">IPP-FT01 (digital)</option>
+              </select>
+            </div>
           </div>
         </div>
       ))}
       <button onClick={addRoom} className="bg-black text-white px-4 py-2 rounded">+ Raum hinzufügen</button>
 
+      {/* PDF Export */}
       <div className="mt-6">
         <button onClick={exportPDF} className="bg-green-600 text-white px-4 py-2 rounded">PDF exportieren</button>
       </div>
