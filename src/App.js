@@ -84,7 +84,7 @@ export default function App() {
           src="/SIKU_Air_Technologies_horizontal_CMYK.jpg"
           alt="SIKU Logo"
         />
-        <h1>SIKU Infrarot-Heizplatten Kalkulator</h1>
+        <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
 
       {/* Projekt-Daten */}
