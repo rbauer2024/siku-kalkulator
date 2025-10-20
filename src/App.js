@@ -277,7 +277,7 @@ export default function App() {
 
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
-                <p>Bedarf: {result.need} W</p>
+                <p><b>Bedarf:</b> {result.need} W</p>
                 <p>{result.text}</p>
               </div>
             </div>
