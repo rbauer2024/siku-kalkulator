@@ -1,329 +1,332 @@
 import React, { useState } from "react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import "./App.css";
+import sikuLogo from "./siku_logo.svg";
 
-export default function App() {
-  // Projekt-Infos
-  const [projectName, setProjectName] = useState("");
-  const [projectAddress, setProjectAddress] = useState("");
-  const [projectEmail, setProjectEmail] = useState("");
+// --- Alle verfügbaren Plattenmodelle ---
+const plates = {
+  WW: [
+    { model: "SIKU IPP 160 WW", power: 160 },
+    { model: "SIKU IPP 330 WW", power: 330 },
+    { model: "SIKU IPP 350 WW", power: 350 },
+    { model: "SIKU IPP 580 WW", power: 580 },
+    { model: "SIKU IPP 700 WW", power: 700 },
+    { model: "SIKU IPP 900 WW", power: 900 },
+  ],
+  DW: [
+    { model: "SIKU IPP 280 DW", power: 280 },
+    { model: "SIKU IPP 450 DW", power: 450 },
+    { model: "SIKU IPP 550 DW", power: 550 },
+    { model: "SIKU IPP 700 DW", power: 700 },
+  ],
+  DC: [
+    { model: "SIKU IPP 450 DC", power: 450 },
+    { model: "SIKU IPP 700 DC", power: 700 },
+    { model: "SIKU IPP 900 DC", power: 900 },
+    { model: "SIKU IPP 1400 DC", power: 1400 },
+  ],
+};
 
-  // Räume
-  const [rooms, setRooms] = useState([]);
+// --- Maximale Plattenanzahl nach Raumgröße ---
+const maxPlatesForArea = (area) => {
+  if (area <= 10) return 1;
+  if (area <= 20) return 2;
+  if (area <= 25) return 3;
+  if (area <= 40) return 4;
+  if (area <= 50) return 5;
+  if (area <= 60) return 6;
+  return Math.ceil(area / 10); // ab 60 m² linear weiter
+};
 
-  // Dämmoptionen
-  const insulationOptions = [
-    { label: "Sehr gut (20 W/m³)", value: 20 },
-    { label: "Gut (25 W/m³)", value: 25 },
-    { label: "Durchschnittlich (30 W/m³)", value: 30 },
-    { label: "Altbau (35 W/m³)", value: 35 },
-  ];
+// --- Funktion zur Berechnung der Vorschläge ---
+const calculateSuggestions = (wattNeed, type, area) => {
+  const available = plates[type];
+  if (!available) return [];
 
-  // Heizplatten-Optionen
-  const plateOptions = {
-    WW: [
-      { name: "SIKU IPP 160 WW", power: 160 },
-      { name: "SIKU IPP 330 WW", power: 330 },
-      { name: "SIKU IPP 350 WW", power: 350 },
-      { name: "SIKU IPP 580 WW", power: 580 },
-      { name: "SIKU IPP 700 WW", power: 700 },
-      { name: "SIKU IPP 900 WW", power: 900 },
-    ],
-    DW: [
-      { name: "SIKU IPP 280 DW", power: 280 },
-      { name: "SIKU IPP 450 DW", power: 450 },
-      { name: "SIKU IPP 550 DW", power: 550 },
-      { name: "SIKU IPP 700 DW", power: 700 },
-    ],
-    DC: [
-      { name: "SIKU IPP 450 DC", power: 450 },
-      { name: "SIKU IPP 700 DC", power: 700 },
-      { name: "SIKU IPP 900 DC", power: 900 },
-      { name: "SIKU IPP 1400 DC", power: 1400 },
-    ],
+  let suggestions = [];
+
+  // --- Vorschlag 1: kleinste Platten, so knapp wie möglich über Bedarf ---
+  let bestOption = null;
+  for (let plate of available) {
+    let count = Math.ceil(wattNeed / plate.power);
+    let total = count * plate.power;
+    if (!bestOption || total < bestOption.total) {
+      bestOption = { count, plate, total };
+    }
+  }
+  if (bestOption) suggestions.push(bestOption);
+
+  // --- Vorschlag 2: möglichst wenig Platten, auch wenn größer ---
+  let biggestPlate = available[available.length - 1]; // stärkste Platte
+  let count2 = Math.ceil(wattNeed / biggestPlate.power);
+  let total2 = count2 * biggestPlate.power;
+  let secondOption = { count: count2, plate: biggestPlate, total: total2 };
+
+  // Nur hinzufügen, wenn unterschiedlich
+  if (
+    secondOption.plate.model !== bestOption.plate.model ||
+    secondOption.count !== bestOption.count
+  ) {
+    suggestions.push(secondOption);
+  }
+
+  // --- Maximal erlaubte Plattenanzahl prüfen ---
+  const maxAllowed = maxPlatesForArea(area);
+  suggestions = suggestions.map((s) => {
+    if (s.count > maxAllowed) {
+      return {
+        ...s,
+        warning: `⚠️ Achtung: Maximal ${maxAllowed} Platten empfohlen, benötigt wären ${s.count}.`,
+      };
+    }
+    return s;
+  });
+
+  return suggestions.slice(0, 2); // max. 2 Vorschläge
+};
+
+function App() {
+  const [rooms, setRooms] = useState([
+    {
+      name: "Wohnzimmer",
+      area: 20,
+      height: 2.5,
+      insulation: 30,
+      window: "Normal",
+      usage: "Dauerbetrieb",
+      thermostat: "IPP-FT01 (digital)",
+      receiver: "IPP-R01 (Unterputz)",
+      type: "DW",
+    },
+  ]);
+  const [project, setProject] = useState({
+    name: "Testprojekt",
+    address: "Sandstrasse",
+    email: "office@siku.at",
+  });
+
+  const handleRoomChange = (index, field, value) => {
+    const newRooms = [...rooms];
+    newRooms[index][field] = value;
+    setRooms(newRooms);
   };
 
-  // max. Platten abhängig von Fläche
-  function getMaxPlates(area) {
-    if (area <= 10) return 1;
-    if (area <= 20) return 2;
-    if (area <= 25) return 3;
-    return Math.ceil(area / 10); // ab 40m² → 4, ab 50m² → 5, usw.
-  }
-
-  // Berechnung pro Raum
-  function calculateRoom(room) {
-    const factor = room.insulation;
-    const volume = room.area * room.height;
-    const need = Math.round(volume * factor);
-
-    const models = plateOptions[room.mounting] || [];
-    if (models.length === 0) {
-      return { need, suggestions: [], warning: "Keine Modelle verfügbar" };
-    }
-
-    const maxAllowed = getMaxPlates(room.area);
-    const suggestions = [];
-
-    // Vorschlag 1: kleinstmögliche Platte mehrfach
-    for (let m of models) {
-      const count = Math.ceil(need / m.power);
-      if (count <= maxAllowed) {
-        suggestions.push({
-          text: `${count} × ${m.name} (${m.power} W)`,
-          power: m.power,
-          count,
-        });
-      }
-    }
-
-    // Vorschlag 2: stärkste Platte suchen, die knapp über Bedarf liegt
-    const bigger = models.filter((m) => m.power >= need);
-    if (bigger.length > 0) {
-      const best = bigger.reduce((a, b) => (a.power < b.power ? a : b));
-      if (1 <= maxAllowed) {
-        suggestions.push({
-          text: `1 × ${best.name} (${best.power} W)`,
-          power: best.power,
-          count: 1,
-        });
-      }
-    }
-
-    // Vorschläge nach Plattenanzahl sortieren
-    suggestions.sort((a, b) => a.count - b.count);
-
-    let warning = null;
-    if (suggestions.length === 0) {
-      warning = `⚠️ Achtung: Maximal ${maxAllowed} Platten empfohlen, aber Bedarf zu hoch (${need} W).`;
-    }
-
-    return { need, suggestions, warning };
-  }
-
-  // Raum hinzufügen
-  function addRoom() {
-    const roomNumber = rooms.length + 1;
+  const addRoom = () => {
     setRooms([
       ...rooms,
       {
-        name: `Raum ${roomNumber}`,
-        area: 0,
+        name: "Neuer Raum",
+        area: 10,
         height: 2.5,
         insulation: 30,
-        windows: "normal",
-        usage: "dauer",
-        thermostat: "FT01",
-        receiver: "R01",
-        mounting: "WW",
+        window: "Normal",
+        usage: "Dauerbetrieb",
+        thermostat: "IPP-FT01 (digital)",
+        receiver: "IPP-R01 (Unterputz)",
+        type: "WW",
       },
     ]);
-  }
+  };
 
-  // Raum löschen
-  function deleteRoom(index) {
-    const newRooms = [...rooms];
-    newRooms.splice(index, 1);
-    setRooms(newRooms);
-  }
+  const deleteRoom = (index) => {
+    setRooms(rooms.filter((_, i) => i !== index));
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF("p", "mm", "a4");
+    doc.setFont("helvetica", "normal");
+    doc.addImage(sikuLogo, "SVG", 15, 10, 40, 15);
+    doc.setFontSize(18);
+    doc.text("Infrarot-Heizplatten Kalkulator", 60, 20);
+
+    doc.setFontSize(12);
+    doc.text(`Projekt: ${project.name}`, 15, 40);
+    doc.text(`Adresse: ${project.address}`, 15, 46);
+    doc.text(`E-Mail: ${project.email}`, 15, 52);
+
+    let y = 70;
+    rooms.forEach((room) => {
+      const wattNeed = Math.round(room.area * room.height * room.insulation);
+      const suggestions = calculateSuggestions(wattNeed, room.type, room.area);
+
+      doc.setFont("helvetica", "bold");
+      doc.text(room.name, 15, y);
+      y += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.text(`Bedarf: ${wattNeed} W`, 15, y);
+      y += 6;
+
+      suggestions.forEach((s, idx) => {
+        doc.text(
+          `Vorschlag ${idx + 1}: ${s.count} × ${s.plate.model} (${s.plate.power} W)`,
+          15,
+          y
+        );
+        y += 6;
+        if (s.warning) {
+          doc.setTextColor(200, 0, 0);
+          doc.text(s.warning, 15, y);
+          doc.setTextColor(0, 0, 0);
+          y += 6;
+        }
+      });
+
+      y += 10;
+    });
+
+    doc.save("heizplatten_kalkulation.pdf");
+  };
 
   return (
     <div className="container">
-      {/* HEADER */}
       <header>
-        <img src="/siku_logo.svg" alt="SIKU Logo" />
+        <img src={sikuLogo} alt="SIKU Logo" />
         <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
 
-      {/* Projekt-Daten */}
-      <div className="card no-print">
+      <div className="card">
         <h2>Projekt-Daten (optional)</h2>
         <input
           type="text"
-          placeholder="Projektname / Kunde"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
+          placeholder="Projektname"
+          value={project.name}
+          onChange={(e) => setProject({ ...project, name: e.target.value })}
         />
         <input
           type="text"
           placeholder="Adresse"
-          value={projectAddress}
-          onChange={(e) => setProjectAddress(e.target.value)}
+          value={project.address}
+          onChange={(e) => setProject({ ...project, address: e.target.value })}
         />
         <input
           type="email"
           placeholder="E-Mail"
-          value={projectEmail}
-          onChange={(e) => setProjectEmail(e.target.value)}
+          value={project.email}
+          onChange={(e) => setProject({ ...project, email: e.target.value })}
         />
       </div>
 
-      {/* Räume */}
-      <div className="card">
-        <h2>Räume</h2>
-        {rooms.length === 0 && <p>🔹 Noch keine Räume hinzugefügt.</p>}
+      <h2>Räume</h2>
+      {rooms.map((room, index) => {
+        const wattNeed = Math.round(room.area * room.height * room.insulation);
+        const suggestions = calculateSuggestions(wattNeed, room.type, room.area);
 
-        {rooms.map((room, index) => {
-          const result = calculateRoom(room);
-          return (
-            <div key={index} className="room">
-              {/* Löschen */}
-              <button
-                type="button"
-                className="delete-room-btn no-print"
-                onClick={() => deleteRoom(index)}
+        return (
+          <div className="room" key={index}>
+            <div className="inputs">
+              <label>Raumname</label>
+              <input
+                type="text"
+                value={room.name}
+                onChange={(e) =>
+                  handleRoomChange(index, "name", e.target.value)
+                }
+              />
+              <label>Fläche (m²)</label>
+              <input
+                type="number"
+                value={room.area}
+                onChange={(e) =>
+                  handleRoomChange(index, "area", parseFloat(e.target.value))
+                }
+              />
+              <label>Deckenhöhe (m)</label>
+              <input
+                type="number"
+                value={room.height}
+                onChange={(e) =>
+                  handleRoomChange(index, "height", parseFloat(e.target.value))
+                }
+              />
+              <label>Dämmstandard</label>
+              <select
+                value={room.insulation}
+                onChange={(e) =>
+                  handleRoomChange(index, "insulation", parseFloat(e.target.value))
+                }
               >
-                ❌
-              </button>
-
-              {/* Eingaben */}
-              <div className="inputs no-print">
-                <label>Raumname</label>
-                <input
-                  type="text"
-                  value={room.name}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].name = e.target.value;
-                    setRooms(newRooms);
-                  }}
-                />
-
-                <label>Fläche (m²)</label>
-                <input
-                  type="number"
-                  value={room.area}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].area = parseFloat(e.target.value);
-                    setRooms(newRooms);
-                  }}
-                />
-
-                <label>Deckenhöhe (m)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={room.height}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].height = parseFloat(e.target.value);
-                    setRooms(newRooms);
-                  }}
-                />
-
-                <label>Dämmstandard</label>
-                <select
-                  value={room.insulation}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].insulation = parseInt(e.target.value, 10);
-                    setRooms(newRooms);
-                  }}
-                >
-                  {insulationOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-
-                <label>Fensteranteil</label>
-                <select
-                  value={room.windows}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].windows = e.target.value;
-                    setRooms(newRooms);
-                  }}
-                >
-                  <option value="normal">Normal</option>
-                  <option value="hoch">Hoch</option>
-                </select>
-
-                <label>Nutzungsart</label>
-                <select
-                  value={room.usage}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].usage = e.target.value;
-                    setRooms(newRooms);
-                  }}
-                >
-                  <option value="dauer">Dauerbetrieb</option>
-                  <option value="zeitweise">Zeitweise</option>
-                </select>
-
-                <label>Thermostat (pro Raum)</label>
-                <select
-                  value={room.thermostat}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].thermostat = e.target.value;
-                    setRooms(newRooms);
-                  }}
-                >
-                  <option value="FT01">IPP-FT01 (digital)</option>
-                  <option value="BT010">BT010 (einfach)</option>
-                  <option value="BT003">BT003 (Funk)</option>
-                </select>
-
-                <label>Empfänger (pro Platte)</label>
-                <select
-                  value={room.receiver}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].receiver = e.target.value;
-                    setRooms(newRooms);
-                  }}
-                >
-                  <option value="R01">IPP-R01 (Unterputz)</option>
-                  <option value="R02">IPP-R02 (Aufputz)</option>
-                </select>
-
-                <label>Montageart</label>
-                <select
-                  value={room.mounting}
-                  onChange={(e) => {
-                    const newRooms = [...rooms];
-                    newRooms[index].mounting = e.target.value;
-                    setRooms(newRooms);
-                  }}
-                >
-                  <option value="WW">Wand (WW)</option>
-                  <option value="DW">Decke abgehängt (DW)</option>
-                  <option value="DC">Decke direkt (DC)</option>
-                </select>
-              </div>
-
-              {/* Ergebnis */}
-              <div className="result">
-                <strong>{room.name || `Raum ${index + 1}`}</strong>
-                <p>Bedarf: {result.need} W</p>
-                {result.suggestions.map((s, i) => (
-                  <p key={i}>
-                    <b>Vorschlag {i + 1}:</b> {s.text}
-                  </p>
-                ))}
-                {result.warning && (
-                  <p style={{ color: "red", fontWeight: "bold" }}>
-                    {result.warning}
-                  </p>
-                )}
-              </div>
+                <option value={20}>Sehr gut (20 W/m³)</option>
+                <option value={30}>Durchschnittlich (30 W/m³)</option>
+                <option value={40}>Schlecht (40 W/m³)</option>
+              </select>
+              <label>Fensteranteil</label>
+              <select
+                value={room.window}
+                onChange={(e) => handleRoomChange(index, "window", e.target.value)}
+              >
+                <option>Normal</option>
+                <option>Groß</option>
+              </select>
+              <label>Nutzungsart</label>
+              <select
+                value={room.usage}
+                onChange={(e) => handleRoomChange(index, "usage", e.target.value)}
+              >
+                <option>Dauerbetrieb</option>
+                <option>Gelegentlich</option>
+              </select>
+              <label>Thermostat (pro Raum)</label>
+              <select
+                value={room.thermostat}
+                onChange={(e) =>
+                  handleRoomChange(index, "thermostat", e.target.value)
+                }
+              >
+                <option>IPP-FT01 (digital)</option>
+                <option>IPP-FT02 (analog)</option>
+              </select>
+              <label>Empfänger (pro Platte)</label>
+              <select
+                value={room.receiver}
+                onChange={(e) =>
+                  handleRoomChange(index, "receiver", e.target.value)
+                }
+              >
+                <option>IPP-R01 (Unterputz)</option>
+                <option>IPP-R02 (Aufputz)</option>
+              </select>
+              <label>Montageart</label>
+              <select
+                value={room.type}
+                onChange={(e) => handleRoomChange(index, "type", e.target.value)}
+              >
+                <option value="WW">Wand (WW)</option>
+                <option value="DW">Decke abgehängt (DW)</option>
+                <option value="DC">Decke direkt (DC)</option>
+              </select>
             </div>
-          );
-        })}
 
-        {/* Buttons */}
-        <div className="no-print">
-          <button onClick={addRoom} className="add-room-btn">
-            + Raum hinzufügen
-          </button>
-          <button onClick={() => window.print()} className="pdf-btn">
-            📄 PDF erstellen
-          </button>
-        </div>
-      </div>
+            <div className="result">
+              <strong>{room.name}</strong>
+              Bedarf: {wattNeed} W
+              {suggestions.map((s, idx) => (
+                <div key={idx}>
+                  <strong>Vorschlag {idx + 1}:</strong> {s.count} × {s.plate.model} (
+                  {s.plate.power} W)
+                  {s.warning && (
+                    <div style={{ color: "red", fontSize: "0.9rem" }}>{s.warning}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button className="delete-room-btn" onClick={() => deleteRoom(index)}>
+              X
+            </button>
+          </div>
+        );
+      })}
+
+      <button className="add-room-btn" onClick={addRoom}>
+        + Raum hinzufügen
+      </button>
+      <button className="pdf-btn" onClick={generatePDF}>
+        PDF erstellen
+      </button>
     </div>
   );
 }
+
+export default App;
