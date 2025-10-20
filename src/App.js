@@ -42,7 +42,7 @@ export default function App() {
     ],
   };
 
-  // Berechnung pro Raum
+  // Berechnung pro Raum (immer knappste Lösung)
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
@@ -51,12 +51,33 @@ export default function App() {
     const models = plateOptions[room.mounting] || [];
     if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
 
-    const best = models[models.length - 1]; // größte Platte
-    const count = Math.ceil(need / best.power);
+    // Sortiere Modelle nach Leistung (klein -> groß)
+    const sortedModels = [...models].sort((a, b) => a.power - b.power);
+
+    let bestOption = null;
+
+    sortedModels.forEach((model) => {
+      const count = Math.ceil(need / model.power);
+      const totalPower = count * model.power;
+
+      // Nur Optionen berücksichtigen, die >= Bedarf sind
+      if (totalPower >= need) {
+        if (!bestOption || totalPower < bestOption.totalPower) {
+          bestOption = { model, count, totalPower };
+        }
+      }
+    });
+
+    // Falls keine Option passt (sehr hoher Bedarf) → größtes Modell nehmen
+    if (!bestOption) {
+      const largest = sortedModels[sortedModels.length - 1];
+      const count = Math.ceil(need / largest.power);
+      bestOption = { model: largest, count, totalPower: count * largest.power };
+    }
 
     return {
       need,
-      text: `${count} × ${best.name} (${best.power} W)`,
+      text: `${bestOption.count} × ${bestOption.model.name} (${bestOption.model.power} W)`,
     };
   }
 
@@ -253,7 +274,6 @@ export default function App() {
                   <b>Bedarf:</b> {result.need} W
                 </p>
                 <p>{result.text}</p>
-                {/* Löschen Button im Ergebnisblock */}
                 <button
                   type="button"
                   className="delete-room-btn no-print"
