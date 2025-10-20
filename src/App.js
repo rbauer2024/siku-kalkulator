@@ -81,8 +81,9 @@ export default function App() {
       {/* HEADER (nur Screen) */}
       <header className="no-print">
         <img
-          src="/SIKU_Air_Technologies_horizontal_CMYK.jpg"
+          src="/siku_logo.svg"
           alt="SIKU Logo"
+          className="logo"
         />
         <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
@@ -90,8 +91,9 @@ export default function App() {
       {/* HEADER (nur Print) */}
       <div className="print-only">
         <img
-          src="/SIKU_Air_Technologies_horizontal_CMYK.jpg"
+          src="/siku_logo.svg"
           alt="SIKU Logo"
+          className="logo"
         />
         <div className="project-info">
           {projectName && (
@@ -146,7 +148,6 @@ export default function App() {
 
           return (
             <div key={index} className="room">
-              {/* Lösch-Button nur im Screen sichtbar */}
               <button
                 type="button"
                 className="delete-room-btn no-print"
@@ -155,7 +156,6 @@ export default function App() {
                 ❌
               </button>
 
-              {/* Eingaben links */}
               <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
@@ -275,7 +275,6 @@ export default function App() {
                 </select>
               </div>
 
-              {/* Ergebnis rechts (immer sichtbar, auch im PDF) */}
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
                 <p>Bedarf: {result.need} W</p>
@@ -285,7 +284,6 @@ export default function App() {
           );
         })}
 
-        {/* Buttons nur im Screen sichtbar */}
         <div className="no-print">
           <button onClick={addRoom} className="add-room-btn">
             + Raum hinzufügen
