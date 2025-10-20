@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import "./App.css";
-import sikuLogo from "./siku_logo.svg";
 
 // --- Alle verfügbaren Plattenmodelle ---
 const plates = {
@@ -46,7 +45,7 @@ const calculateSuggestions = (wattNeed, type, area) => {
 
   let suggestions = [];
 
-  // --- Vorschlag 1: kleinste Platten, so knapp wie möglich über Bedarf ---
+  // Vorschlag 1: kleinste Platten, so knapp wie möglich über Bedarf
   let bestOption = null;
   for (let plate of available) {
     let count = Math.ceil(wattNeed / plate.power);
@@ -57,13 +56,12 @@ const calculateSuggestions = (wattNeed, type, area) => {
   }
   if (bestOption) suggestions.push(bestOption);
 
-  // --- Vorschlag 2: möglichst wenig Platten, auch wenn größer ---
-  let biggestPlate = available[available.length - 1]; // stärkste Platte
+  // Vorschlag 2: möglichst wenig Platten, auch wenn größer
+  let biggestPlate = available[available.length - 1];
   let count2 = Math.ceil(wattNeed / biggestPlate.power);
   let total2 = count2 * biggestPlate.power;
   let secondOption = { count: count2, plate: biggestPlate, total: total2 };
 
-  // Nur hinzufügen, wenn unterschiedlich
   if (
     secondOption.plate.model !== bestOption.plate.model ||
     secondOption.count !== bestOption.count
@@ -71,7 +69,7 @@ const calculateSuggestions = (wattNeed, type, area) => {
     suggestions.push(secondOption);
   }
 
-  // --- Maximal erlaubte Plattenanzahl prüfen ---
+  // Maximal empfohlene Plattenanzahl prüfen
   const maxAllowed = maxPlatesForArea(area);
   suggestions = suggestions.map((s) => {
     if (s.count > maxAllowed) {
@@ -136,7 +134,10 @@ function App() {
   const generatePDF = () => {
     const doc = new jsPDF("p", "mm", "a4");
     doc.setFont("helvetica", "normal");
-    doc.addImage(sikuLogo, "SVG", 15, 10, 40, 15);
+
+    // Logo aus public laden
+    doc.addImage("/siku_logo.svg", "SVG", 15, 10, 40, 15);
+
     doc.setFontSize(18);
     doc.text("Infrarot-Heizplatten Kalkulator", 60, 20);
 
@@ -182,7 +183,7 @@ function App() {
   return (
     <div className="container">
       <header>
-        <img src={sikuLogo} alt="SIKU Logo" />
+        <img src="/siku_logo.svg" alt="SIKU Logo" />
         <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
 
@@ -302,11 +303,11 @@ function App() {
               <strong>{room.name}</strong>
               Bedarf: {wattNeed} W
               {suggestions.map((s, idx) => (
-                <div key={idx}>
+                <div key={idx} className="suggestion">
                   <strong>Vorschlag {idx + 1}:</strong> {s.count} × {s.plate.model} (
                   {s.plate.power} W)
                   {s.warning && (
-                    <div style={{ color: "red", fontSize: "0.9rem" }}>{s.warning}</div>
+                    <div className="warning">{s.warning}</div>
                   )}
                 </div>
               ))}
