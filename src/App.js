@@ -21,15 +21,23 @@ export default function App() {
   // Heizplatten-Optionen
   const plateOptions = {
     WW: [
-      { name: "SIKU IPP 600 WW", power: 600 },
+      { name: "SIKU IPP 160 WW", power: 160 },
+      { name: "SIKU IPP 330 WW", power: 330 },
+      { name: "SIKU IPP 350 WW", power: 350 },
+      { name: "SIKU IPP 580 WW", power: 580 },
+      { name: "SIKU IPP 700 WW", power: 700 },
       { name: "SIKU IPP 900 WW", power: 900 },
     ],
     DW: [
+      { name: "SIKU IPP 280 DW", power: 280 },
+      { name: "SIKU IPP 450 DW", power: 450 },
+      { name: "SIKU IPP 550 DW", power: 550 },
       { name: "SIKU IPP 700 DW", power: 700 },
-      { name: "SIKU IPP 1000 DW", power: 1000 },
     ],
     DC: [
-      { name: "SIKU IPP 1000 DC", power: 1000 },
+      { name: "SIKU IPP 450 DC", power: 450 },
+      { name: "SIKU IPP 700 DC", power: 700 },
+      { name: "SIKU IPP 900 DC", power: 900 },
       { name: "SIKU IPP 1400 DC", power: 1400 },
     ],
   };
@@ -38,12 +46,12 @@ export default function App() {
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
-    const need = volume * factor;
+    const need = Math.round(volume * factor);
 
     const models = plateOptions[room.mounting] || [];
     if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
 
-    const best = models[models.length - 1];
+    const best = models[models.length - 1]; // größte Platte
     const count = Math.ceil(need / best.power);
 
     return {
@@ -78,41 +86,11 @@ export default function App() {
 
   return (
     <div className="container">
-      {/* HEADER (nur Screen) */}
-      <header className="no-print">
-        <img
-          src="/siku_logo.svg"
-          alt="SIKU Logo"
-          className="logo"
-        />
+      {/* HEADER */}
+      <header>
+        <img src="/siku_logo.svg" alt="SIKU Logo" />
         <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
-
-      {/* HEADER (nur Print) */}
-      <div className="print-only">
-        <img
-          src="/siku_logo.svg"
-          alt="SIKU Logo"
-          className="logo"
-        />
-        <div className="project-info">
-          {projectName && (
-            <p>
-              <strong>Projekt:</strong> {projectName}
-            </p>
-          )}
-          {projectAddress && (
-            <p>
-              <strong>Adresse:</strong> {projectAddress}
-            </p>
-          )}
-          {projectEmail && (
-            <p>
-              <strong>E-Mail:</strong> {projectEmail}
-            </p>
-          )}
-        </div>
-      </div>
 
       {/* Projekt-Daten */}
       <div className="card no-print">
@@ -148,14 +126,7 @@ export default function App() {
 
           return (
             <div key={index} className="room">
-              <button
-                type="button"
-                className="delete-room-btn no-print"
-                onClick={() => deleteRoom(index)}
-              >
-                ❌
-              </button>
-
+              {/* Eingaben links */}
               <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
@@ -275,15 +246,27 @@ export default function App() {
                 </select>
               </div>
 
+              {/* Ergebnis rechts */}
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
-                <p><b>Bedarf:</b> {result.need} W</p>
+                <p>
+                  <b>Bedarf:</b> {result.need} W
+                </p>
                 <p>{result.text}</p>
+                {/* Löschen Button im Ergebnisblock */}
+                <button
+                  type="button"
+                  className="delete-room-btn no-print"
+                  onClick={() => deleteRoom(index)}
+                >
+                  ❌
+                </button>
               </div>
             </div>
           );
         })}
 
+        {/* Buttons */}
         <div className="no-print">
           <button onClick={addRoom} className="add-room-btn">
             + Raum hinzufügen

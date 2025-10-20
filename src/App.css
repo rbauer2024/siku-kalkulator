@@ -2,6 +2,7 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #f7f9fc;
+  color: #333;
 }
 
 .container {
@@ -15,10 +16,12 @@ header {
   align-items: center;
   gap: 15px;
   margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
 }
 
-.logo {
-  max-width: 180px;
+header img {
+  max-width: 150px;
   height: auto;
 }
 
@@ -33,7 +36,7 @@ header h1 {
   padding: 20px;
   margin-bottom: 25px;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .card h2 {
@@ -42,6 +45,7 @@ header h1 {
   color: #000;
 }
 
+/* Raum-Layout */
 .room {
   position: relative;
   display: grid;
@@ -68,6 +72,8 @@ header h1 {
   padding: 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  background: #fff;
+  font-size: 0.9rem;
 }
 
 .result {
@@ -77,48 +83,52 @@ header h1 {
   border-radius: 4px;
   font-size: 0.95rem;
   height: fit-content;
+  position: relative;
 }
 
 .result strong {
   display: block;
   margin-bottom: 6px;
   color: #2559a1;
+  font-size: 1rem;
 }
 
 /* Buttons */
-.add-room-btn {
+.add-room-btn,
+.pdf-btn {
   margin-top: 15px;
+  margin-right: 10px;
   padding: 10px 16px;
-  background-color: #2559a1;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
   font-size: 0.95rem;
   cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  transition: background 0.3s ease;
 }
+
+.add-room-btn {
+  background-color: #2559a1;
+  color: #fff;
+}
+
 .add-room-btn:hover {
   background-color: #1d437d;
 }
 
 .pdf-btn {
-  margin-top: 15px;
-  margin-left: 10px;
-  padding: 10px 16px;
   background-color: #2ecc71;
   color: #fff;
-  border: none;
-  border-radius: 5px;
-  font-size: 0.95rem;
-  cursor: pointer;
 }
+
 .pdf-btn:hover {
   background-color: #27ae60;
 }
 
+/* Delete Button im Ergebnisblock */
 .delete-room-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   padding: 4px 8px;
   background-color: #e74c3c;
   color: #fff;
@@ -126,75 +136,51 @@ header h1 {
   border-radius: 3px;
   font-size: 0.85rem;
   cursor: pointer;
+  transition: background 0.3s ease;
 }
+
 .delete-room-btn:hover {
   background-color: #c0392b;
-}
-
-/* Projektinfos */
-.project-info {
-  margin: 10px 0 20px;
-  font-size: 0.95rem;
-}
-.project-info p {
-  margin: 3px 0;
-}
-.project-info strong {
-  color: #2559a1;
-}
-
-/* Screen/PDF Steuerung */
-.no-print {
-  display: block;
-}
-.print-only {
-  display: none;
 }
 
 /* Print-Einstellungen */
 @media print {
   body {
     background: #fff;
-    font-size: 11pt;
+    color: #000;
   }
+
   .no-print {
-    display: none !important;
+    display: none !important; /* Eingabefelder + Buttons verschwinden */
   }
-  .print-only {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #2559a1;
+
+  header {
+    border-bottom: none;
+    margin-bottom: 10px;
   }
-  .print-only img {
-    max-width: 150px;
+
+  header img {
+    max-width: 120px;
   }
-  .project-info {
-    text-align: right;
-    font-size: 0.95rem;
-  }
+
   .card {
     box-shadow: none;
     border: none;
-    padding: 0;
+    margin-bottom: 15px;
+    padding: 10px;
   }
+
   .room {
-    background: #fff;
+    display: block; /* Räume im PDF untereinander */
     border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #fff;
   }
-  .result strong {
-    font-size: 1.2rem;
-    color: #2559a1;
-    margin-bottom: 8px;
-    display: block;
-  }
-  .result p {
-    margin: 4px 0;
+
+  .result {
+    border-left: 3px solid #2559a1;
+    padding: 8px;
+    font-size: 0.9rem;
   }
 }
