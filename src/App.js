@@ -7,7 +7,7 @@ export default function App() {
   const [projectAddress, setProjectAddress] = useState("");
   const [projectEmail, setProjectEmail] = useState("");
 
-  // Räume
+  // Räume: Startet leer
   const [rooms, setRooms] = useState([]);
 
   // Dämmoptionen
@@ -18,7 +18,7 @@ export default function App() {
     { label: "Altbau (35 W/m³)", value: "35" },
   ];
 
-  // Heizplatten
+  // Heizplatten-Optionen
   const plateOptions = {
     WW: [
       { name: "SIKU IPP 600 WW", power: 600 },
@@ -34,6 +34,7 @@ export default function App() {
     ],
   };
 
+  // Berechnung pro Raum
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
@@ -51,6 +52,7 @@ export default function App() {
     };
   }
 
+  // Neuen Raum hinzufügen
   function addRoom() {
     const roomNumber = rooms.length + 1;
     const newRoom = {
@@ -67,6 +69,7 @@ export default function App() {
     setRooms([...rooms, newRoom]);
   }
 
+  // Raum löschen
   function deleteRoom(index) {
     const newRooms = [...rooms];
     newRooms.splice(index, 1);
@@ -75,17 +78,41 @@ export default function App() {
 
   return (
     <div className="container">
-      {/* HEADER */}
-      <header>
+      {/* HEADER (nur Screen) */}
+      <header className="no-print">
         <img
-          src="/siku_logo.svg"  // transparentes SVG
+          src="/SIKU_Air_Technologies_horizontal_CMYK.jpg"
           alt="SIKU Logo"
-          className="logo"
         />
         <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
 
-      {/* Projekt-Daten Eingabe (Screen only) */}
+      {/* HEADER (nur Print) */}
+      <div className="print-only">
+        <img
+          src="/SIKU_Air_Technologies_horizontal_CMYK.jpg"
+          alt="SIKU Logo"
+        />
+        <div className="project-info">
+          {projectName && (
+            <p>
+              <strong>Projekt:</strong> {projectName}
+            </p>
+          )}
+          {projectAddress && (
+            <p>
+              <strong>Adresse:</strong> {projectAddress}
+            </p>
+          )}
+          {projectEmail && (
+            <p>
+              <strong>E-Mail:</strong> {projectEmail}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Projekt-Daten */}
       <div className="card no-print">
         <h2>Projekt-Daten (optional)</h2>
         <input
@@ -108,24 +135,18 @@ export default function App() {
         />
       </div>
 
-      {/* Projekt-Daten Kopfzeile im PDF */}
-      <div className="project-info print-only">
-        <div>
-          {projectName && <p><strong>Projekt:</strong> {projectName}</p>}
-          {projectAddress && <p><strong>Adresse:</strong> {projectAddress}</p>}
-          {projectEmail && <p><strong>E-Mail:</strong> {projectEmail}</p>}
-        </div>
-      </div>
-
       {/* Räume */}
       <div className="card">
         <h2>Räume</h2>
+
         {rooms.length === 0 && <p>🔹 Noch keine Räume hinzugefügt.</p>}
 
         {rooms.map((room, index) => {
           const result = calculateRoom(room);
+
           return (
             <div key={index} className="room">
+              {/* Lösch-Button nur im Screen sichtbar */}
               <button
                 type="button"
                 className="delete-room-btn no-print"
@@ -134,7 +155,7 @@ export default function App() {
                 ❌
               </button>
 
-              {/* Eingaben */}
+              {/* Eingaben links */}
               <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
@@ -146,6 +167,7 @@ export default function App() {
                     setRooms(newRooms);
                   }}
                 />
+
                 <label>Fläche (m²)</label>
                 <input
                   type="number"
@@ -156,6 +178,7 @@ export default function App() {
                     setRooms(newRooms);
                   }}
                 />
+
                 <label>Deckenhöhe (m)</label>
                 <input
                   type="number"
@@ -167,6 +190,7 @@ export default function App() {
                     setRooms(newRooms);
                   }}
                 />
+
                 <label>Dämmstandard</label>
                 <select
                   value={room.insulation}
@@ -182,6 +206,7 @@ export default function App() {
                     </option>
                   ))}
                 </select>
+
                 <label>Fensteranteil</label>
                 <select
                   value={room.windows}
@@ -194,6 +219,7 @@ export default function App() {
                   <option value="normal">Normal</option>
                   <option value="hoch">Hoch</option>
                 </select>
+
                 <label>Nutzungsart</label>
                 <select
                   value={room.usage}
@@ -206,6 +232,7 @@ export default function App() {
                   <option value="dauer">Dauerbetrieb</option>
                   <option value="zeitweise">Zeitweise</option>
                 </select>
+
                 <label>Thermostat (pro Raum)</label>
                 <select
                   value={room.thermostat}
@@ -219,6 +246,7 @@ export default function App() {
                   <option value="BT010">BT010 (einfach)</option>
                   <option value="BT003">BT003 (Funk)</option>
                 </select>
+
                 <label>Empfänger (pro Platte)</label>
                 <select
                   value={room.receiver}
@@ -231,6 +259,7 @@ export default function App() {
                   <option value="R01">IPP-R01 (Unterputz)</option>
                   <option value="R02">IPP-R02 (Aufputz)</option>
                 </select>
+
                 <label>Montageart</label>
                 <select
                   value={room.mounting}
@@ -246,7 +275,7 @@ export default function App() {
                 </select>
               </div>
 
-              {/* Ergebnis */}
+              {/* Ergebnis rechts (immer sichtbar, auch im PDF) */}
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
                 <p>Bedarf: {result.need} W</p>
@@ -256,6 +285,7 @@ export default function App() {
           );
         })}
 
+        {/* Buttons nur im Screen sichtbar */}
         <div className="no-print">
           <button onClick={addRoom} className="add-room-btn">
             + Raum hinzufügen
