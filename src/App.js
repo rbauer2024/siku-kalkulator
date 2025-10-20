@@ -7,20 +7,8 @@ export default function App() {
   const [projectAddress, setProjectAddress] = useState("");
   const [projectEmail, setProjectEmail] = useState("");
 
-  // Räume
-  const [rooms, setRooms] = useState([
-    {
-      name: "Wohnzimmer",
-      area: 20,
-      height: 2.6,
-      insulation: "30",
-      windows: "normal",
-      usage: "dauer",
-      thermostat: "FT01",
-      receiver: "R01",
-      mounting: "WW",
-    },
-  ]);
+  // Räume: Startet leer
+  const [rooms, setRooms] = useState([]);
 
   // Dämmoptionen
   const insulationOptions = [
@@ -64,6 +52,22 @@ export default function App() {
     };
   }
 
+  // Neuen Raum hinzufügen
+  function addRoom() {
+    const newRoom = {
+      name: "",
+      area: 0,
+      height: 2.5,
+      insulation: "30",
+      windows: "normal",
+      usage: "dauer",
+      thermostat: "FT01",
+      receiver: "R01",
+      mounting: "WW",
+    };
+    setRooms([...rooms, newRoom]);
+  }
+
   return (
     <div className="container">
       {/* HEADER */}
@@ -101,6 +105,9 @@ export default function App() {
       {/* Räume */}
       <div className="card">
         <h2>Räume</h2>
+
+        {rooms.length === 0 && <p>🔹 Noch keine Räume hinzugefügt.</p>}
+
         {rooms.map((room, index) => {
           const result = calculateRoom(room);
 
@@ -235,6 +242,10 @@ export default function App() {
             </div>
           );
         })}
+
+        <button onClick={addRoom} className="add-room-btn">
+          + Raum hinzufügen
+        </button>
       </div>
     </div>
   );
