@@ -42,43 +42,45 @@ export default function App() {
     ],
   };
 
-  // Berechnung pro Raum (immer knappste Lösung)
+  // Berechnung pro Raum
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
-    const need = Math.round(volume * factor);
+    const need = volume * factor;
 
     const models = plateOptions[room.mounting] || [];
-    if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
+    if (models.length === 0) return { need, results: ["Keine Modelle verfügbar"] };
 
-    // Sortiere Modelle nach Leistung (klein -> groß)
-    const sortedModels = [...models].sort((a, b) => a.power - b.power);
+    let solutions = [];
 
-    let bestOption = null;
-
-    sortedModels.forEach((model) => {
+    // Alle Modelle durchprobieren
+    models.forEach((model) => {
       const count = Math.ceil(need / model.power);
       const totalPower = count * model.power;
-
-      // Nur Optionen berücksichtigen, die >= Bedarf sind
-      if (totalPower >= need) {
-        if (!bestOption || totalPower < bestOption.totalPower) {
-          bestOption = { model, count, totalPower };
-        }
-      }
+      solutions.push({
+        text: `${count} × ${model.name} (${model.power} W)`,
+        total: totalPower,
+      });
     });
 
-    // Falls keine Option passt (sehr hoher Bedarf) → größtes Modell nehmen
-    if (!bestOption) {
-      const largest = sortedModels[sortedModels.length - 1];
-      const count = Math.ceil(need / largest.power);
-      bestOption = { model: largest, count, totalPower: count * largest.power };
+    // Nach Gesamtleistung sortieren (aufsteigend)
+    solutions.sort((a, b) => a.total - b.total);
+
+    // Beste Lösung = erste über dem Bedarf
+    const best = solutions.find((s) => s.total >= need);
+    if (!best) return { need, results: ["Keine passende Lösung gefunden"] };
+
+    let results = [`Vorschlag 1: ${best.text}`];
+
+    // Prüfen, ob es eine zweite Lösung mit gleicher Gesamtleistung gibt
+    const alternative = solutions.find(
+      (s) => s.total === best.total && s.text !== best.text
+    );
+    if (alternative) {
+      results.push(`Vorschlag 2: ${alternative.text}`);
     }
 
-    return {
-      need,
-      text: `${bestOption.count} × ${bestOption.model.name} (${bestOption.model.power} W)`,
-    };
+    return { need, results };
   }
 
   // Neuen Raum hinzufügen
@@ -147,7 +149,16 @@ export default function App() {
 
           return (
             <div key={index} className="room">
-              {/* Eingaben links */}
+              {/* Lösch-Button */}
+              <button
+                type="button"
+                className="delete-room-btn no-print"
+                onClick={() => deleteRoom(index)}
+              >
+                ❌
+              </button>
+
+              {/* Eingaben */}
               <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
@@ -267,20 +278,13 @@ export default function App() {
                 </select>
               </div>
 
-              {/* Ergebnis rechts */}
+              {/* Ergebnis */}
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
-                <p>
-                  <b>Bedarf:</b> {result.need} W
-                </p>
-                <p>{result.text}</p>
-                <button
-                  type="button"
-                  className="delete-room-btn no-print"
-                  onClick={() => deleteRoom(index)}
-                >
-                  ❌
-                </button>
+                <p>Bedarf: {result.need} W</p>
+                {result.results.map((r, i) => (
+                  <p key={i}>{r}</p>
+                ))}
               </div>
             </div>
           );
