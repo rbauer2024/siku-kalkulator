@@ -42,6 +42,7 @@ header h1 {
   color: #000;
 }
 
+/* Raum-Layout */
 .room {
   position: relative;
   display: grid;
@@ -54,7 +55,7 @@ header h1 {
   background: #fafafa;
 }
 
-/* Inputs */
+/* Eingaben */
 .inputs label {
   display: block;
   font-weight: 600;
@@ -79,7 +80,7 @@ header h1 {
   border-radius: 4px;
   font-size: 0.95rem;
   height: fit-content;
-  white-space: pre-line; /* Zeilenumbrüche bei Vorschlag 1/2 */
+  white-space: pre-line; /* für Vorschlag 1 / 2 mit Zeilenumbruch */
 }
 
 .result strong {
@@ -88,8 +89,19 @@ header h1 {
   color: #2559a1;
 }
 
+/* Vorschläge normal */
+.result p {
+  margin: 4px 0;
+  color: #333;
+}
+
 /* Warnung */
-.result .warning {
+.result pre {
+  margin: 0;
+}
+
+.result .warning,
+.result pre:has(⚠️) {
   margin-top: 10px;
   color: #c0392b;
   font-weight: bold;
@@ -97,6 +109,7 @@ header h1 {
   padding: 6px;
   border-radius: 4px;
   border-left: 4px solid #e74c3c;
+  white-space: pre-line;
 }
 
 /* Buttons */
@@ -164,6 +177,12 @@ header h1 {
     border-left: none;
     padding: 5px 0;
     font-size: 1rem;
+  }
+  .result .warning {
+    background: none;
+    color: #c0392b;
+    border: none;
+    padding: 0;
   }
   header img {
     max-width: 200px;

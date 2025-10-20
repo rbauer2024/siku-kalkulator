@@ -14,7 +14,7 @@ export default function App() {
     { label: "Altbau (35 W/m³)", value: "35" },
   ];
 
-  // Produkt-Optionen
+  // Platten-Optionen
   const plateOptions = {
     WW: [
       { name: "SIKU IPP 160 WW", power: 160 },
@@ -38,7 +38,7 @@ export default function App() {
     ],
   };
 
-  // Max Platten anhand Fläche
+  // Max Platten abhängig von Fläche
   function maxPlates(area) {
     return Math.floor(area / 10) + 1;
   }
@@ -51,14 +51,14 @@ export default function App() {
     const models = plateOptions[room.mounting] || [];
     if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
 
-    // Nach Leistung sortieren (aufsteigend)
+    // Modelle nach Leistung sortieren
     const sorted = [...models].sort((a, b) => a.power - b.power);
 
     let bestSolution = null;
     let alternative = null;
     const maxAllowed = maxPlates(room.area);
 
-    // Hauptlösung: möglichst knapp über Bedarf
+    // Hauptlösung: knapp über Bedarf
     for (let model of sorted) {
       const count = Math.ceil(need / model.power);
       if (count <= maxAllowed) {
@@ -67,41 +67,44 @@ export default function App() {
       }
     }
 
-    // Alternative Lösung: weniger Platten, gleiche Deckung
-    if (bestSolution) {
-      for (let model of sorted) {
-        const count = Math.ceil(need / model.power);
-        if (
-          count <= maxAllowed &&
-          count < bestSolution.count &&
-          count * model.power >= need
-        ) {
-          alternative = { count, model };
-          break;
-        }
+    // Falls kein bestSolution innerhalb der Empfehlung -> stärkste nehmen
+    if (!bestSolution) {
+      const strongest = sorted[sorted.length - 1];
+      const count = Math.ceil(need / strongest.power);
+      bestSolution = { count, model: strongest, overLimit: true };
+    }
+
+    // Alternative Lösung (weniger Platten, gleiche Deckung)
+    for (let model of sorted) {
+      const count = Math.ceil(need / model.power);
+      if (
+        count <= maxAllowed &&
+        count < bestSolution.count &&
+        count * model.power >= need
+      ) {
+        alternative = { count, model };
+        break;
       }
     }
 
-    // Wenn selbst mit maxAllowed keine Lösung → Warnung
-    if (!bestSolution) {
-      const strongest = sorted[sorted.length - 1];
-      const maxPower = strongest.power * maxAllowed;
-      return {
-        need,
-        text: `⚠️ Achtung: Maximal ${maxAllowed} Platten erlaubt, aber Bedarf ${need} W > maximal möglich ${maxPower} W`,
-      };
-    }
-
     // Ergebnistext
-    let text = `Vorschlag 1: ${bestSolution.count} × ${bestSolution.model.name} (${bestSolution.model.power} W)`;
-    if (alternative) {
-      text += `\nVorschlag 2: ${alternative.count} × ${alternative.model.name} (${alternative.model.power} W)`;
+    let text = "";
+
+    // Wenn Empfehlung überschritten wurde → Warnung + Vorschlag trotzdem anzeigen
+    if (bestSolution.overLimit || bestSolution.count > maxAllowed) {
+      text += `⚠️ Achtung: Maximal ${maxAllowed} Platten empfohlen, benötigt wären ${bestSolution.count}.\n`;
+      text += `Vorschlag: ${bestSolution.count} × ${bestSolution.model.name} (${bestSolution.model.power} W)`;
+    } else {
+      text += `Vorschlag 1: ${bestSolution.count} × ${bestSolution.model.name} (${bestSolution.model.power} W)`;
+      if (alternative) {
+        text += `\nVorschlag 2: ${alternative.count} × ${alternative.model.name} (${alternative.model.power} W)`;
+      }
     }
 
     return { need, text };
   }
 
-  // Raum hinzufügen
+  // Neuen Raum hinzufügen
   function addRoom() {
     const roomNumber = rooms.length + 1;
     const newRoom = {
