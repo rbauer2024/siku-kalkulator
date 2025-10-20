@@ -54,8 +54,9 @@ export default function App() {
 
   // Neuen Raum hinzufügen
   function addRoom() {
+    const roomNumber = rooms.length + 1;
     const newRoom = {
-      name: "",
+      name: `Raum ${roomNumber}`,
       area: 0,
       height: 2.5,
       insulation: "30",
@@ -66,6 +67,13 @@ export default function App() {
       mounting: "WW",
     };
     setRooms([...rooms, newRoom]);
+  }
+
+  // Raum löschen
+  function deleteRoom(index) {
+    const newRooms = [...rooms];
+    newRooms.splice(index, 1);
+    setRooms(newRooms);
   }
 
   return (
@@ -113,6 +121,15 @@ export default function App() {
 
           return (
             <div key={index} className="room">
+              {/* Lösch-Button oben rechts */}
+              <button
+                type="button"
+                className="delete-room-btn"
+                onClick={() => deleteRoom(index)}
+              >
+                ❌
+              </button>
+
               {/* Eingaben links */}
               <div className="inputs">
                 <label>Raumname</label>
