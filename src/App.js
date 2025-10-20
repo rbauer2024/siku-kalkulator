@@ -7,7 +7,7 @@ export default function App() {
   const [projectAddress, setProjectAddress] = useState("");
   const [projectEmail, setProjectEmail] = useState("");
 
-  // Räume: Startet leer
+  // Räume
   const [rooms, setRooms] = useState([]);
 
   // Dämmoptionen
@@ -42,45 +42,57 @@ export default function App() {
     ],
   };
 
+  // Maximal erlaubte Platten pro Raum anhand Fläche
+  function maxPlates(area) {
+    if (area <= 10) return 1;
+    if (area <= 20) return 2;
+    if (area <= 25) return 3;
+    if (area <= 40) return 4;
+    if (area <= 50) return 5;
+    if (area <= 60) return 6;
+    return Math.ceil(area / 10); // Ab 60 m²: alle 10 m² +1 Platte
+  }
+
   // Berechnung pro Raum
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
-    const need = volume * factor;
+    const need = Math.ceil(volume * factor);
 
     const models = plateOptions[room.mounting] || [];
-    if (models.length === 0) return { need, results: ["Keine Modelle verfügbar"] };
+    if (models.length === 0) return { need, suggestions: ["Keine Modelle verfügbar"] };
 
-    let solutions = [];
+    const maxAllowed = maxPlates(room.area);
+    let suggestion1 = null;
+    let suggestion2 = null;
 
-    // Alle Modelle durchprobieren
-    models.forEach((model) => {
+    // Vorschlag 1: kleinstmögliche Lösung über Bedarf
+    for (let i = 0; i < models.length; i++) {
+      const model = models[i];
       const count = Math.ceil(need / model.power);
-      const totalPower = count * model.power;
-      solutions.push({
-        text: `${count} × ${model.name} (${model.power} W)`,
-        total: totalPower,
-      });
-    });
-
-    // Nach Gesamtleistung sortieren (aufsteigend)
-    solutions.sort((a, b) => a.total - b.total);
-
-    // Beste Lösung = erste über dem Bedarf
-    const best = solutions.find((s) => s.total >= need);
-    if (!best) return { need, results: ["Keine passende Lösung gefunden"] };
-
-    let results = [`Vorschlag 1: ${best.text}`];
-
-    // Prüfen, ob es eine zweite Lösung mit gleicher Gesamtleistung gibt
-    const alternative = solutions.find(
-      (s) => s.total === best.total && s.text !== best.text
-    );
-    if (alternative) {
-      results.push(`Vorschlag 2: ${alternative.text}`);
+      if (count <= maxAllowed) {
+        suggestion1 = `${count} × ${model.name} (${model.power} W)`;
+        break;
+      }
     }
 
-    return { need, results };
+    // Vorschlag 2: alternative Lösung (weniger Platten, dafür größere)
+    for (let i = models.length - 1; i >= 0; i--) {
+      const model = models[i];
+      const count = Math.ceil(need / model.power);
+      if (count <= maxAllowed) {
+        const text = `${count} × ${model.name} (${model.power} W)`;
+        if (text !== suggestion1) {
+          suggestion2 = text;
+        }
+        break;
+      }
+    }
+
+    return {
+      need,
+      suggestions: [suggestion1, suggestion2].filter(Boolean),
+    };
   }
 
   // Neuen Raum hinzufügen
@@ -149,7 +161,6 @@ export default function App() {
 
           return (
             <div key={index} className="room">
-              {/* Lösch-Button */}
               <button
                 type="button"
                 className="delete-room-btn no-print"
@@ -158,7 +169,7 @@ export default function App() {
                 ❌
               </button>
 
-              {/* Eingaben */}
+              {/* Eingaben links */}
               <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
@@ -278,19 +289,18 @@ export default function App() {
                 </select>
               </div>
 
-              {/* Ergebnis */}
+              {/* Ergebnis rechts */}
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
                 <p>Bedarf: {result.need} W</p>
-                {result.results.map((r, i) => (
-                  <p key={i}>{r}</p>
+                {result.suggestions.map((s, i) => (
+                  <p key={i}>Vorschlag {i + 1}: {s}</p>
                 ))}
               </div>
             </div>
           );
         })}
 
-        {/* Buttons */}
         <div className="no-print">
           <button onClick={addRoom} className="add-room-btn">
             + Raum hinzufügen
