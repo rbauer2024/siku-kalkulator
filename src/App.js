@@ -88,7 +88,7 @@ export default function App() {
       </header>
 
       {/* Projekt-Daten */}
-      <div className="card">
+      <div className="card no-print">
         <h2>Projekt-Daten (optional)</h2>
         <input
           type="text"
@@ -121,17 +121,17 @@ export default function App() {
 
           return (
             <div key={index} className="room">
-              {/* Lösch-Button oben rechts */}
+              {/* Lösch-Button nur im Screen sichtbar */}
               <button
                 type="button"
-                className="delete-room-btn"
+                className="delete-room-btn no-print"
                 onClick={() => deleteRoom(index)}
               >
                 ❌
               </button>
 
               {/* Eingaben links */}
-              <div className="inputs">
+              <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
                   type="text"
@@ -250,9 +250,9 @@ export default function App() {
                 </select>
               </div>
 
-              {/* Ergebnis rechts */}
+              {/* Ergebnis rechts (immer sichtbar, auch im PDF) */}
               <div className="result">
-                <strong>Berechnung:</strong>
+                <strong>{room.name || `Raum ${index + 1}`}</strong>
                 <p>Bedarf: {result.need} W</p>
                 <p>{result.text}</p>
               </div>
@@ -260,9 +260,15 @@ export default function App() {
           );
         })}
 
-        <button onClick={addRoom} className="add-room-btn">
-          + Raum hinzufügen
-        </button>
+        {/* Buttons nur im Screen sichtbar */}
+        <div className="no-print">
+          <button onClick={addRoom} className="add-room-btn">
+            + Raum hinzufügen
+          </button>
+          <button onClick={() => window.print()} className="pdf-btn">
+            📄 PDF erstellen
+          </button>
+        </div>
       </div>
     </div>
   );
