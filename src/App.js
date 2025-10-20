@@ -81,7 +81,7 @@ export default function App() {
       {/* HEADER */}
       <header>
         <img
-          src="/SIKU_Air_Technologies_horizontal_CMYK - 2000_700.jpg"
+          src="/SIKU_Air_Technologies_horizontal_CMYK.jpg"
           alt="SIKU Logo"
         />
         <h1>SIKU Infrarot-Heizplatten Kalkulator</h1>
