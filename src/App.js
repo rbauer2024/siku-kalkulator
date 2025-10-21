@@ -10,7 +10,7 @@ export default function App() {
   // Räume: Startet leer
   const [rooms, setRooms] = useState([]);
 
-  // Alte Daten beim Laden löschen (Cache-Reset)
+  // Alte Daten beim Laden löschen
   useEffect(() => {
     sessionStorage.clear();
   }, []);
@@ -47,7 +47,7 @@ export default function App() {
     ],
   };
 
-  // Maximale Plattenanzahl basierend auf Fläche
+  // Maximal empfohlene Platten je Fläche
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -55,7 +55,7 @@ export default function App() {
     if (area <= 40) return 5;
     if (area <= 50) return 6;
     if (area <= 60) return 7;
-    return 8; // Sicherheitspuffer
+    return 8;
   }
 
   // Berechnung pro Raum
@@ -68,53 +68,60 @@ export default function App() {
     if (models.length === 0)
       return { need, text: "Keine Modelle verfügbar", warnings: [] };
 
-    const suggestions = [];
-    const warnings = [];
     const maxPlates = getMaxPlates(room.area);
+    const warnings = [];
 
-    // Vorschlag 1: Modell knapp über Bedarf (minimal über dem Bedarf)
-    let suggestion1 = null;
-    for (let i = 0; i < models.length; i++) {
-      const model = models[i];
+    // Modelle nach Leistung sortieren (absteigend)
+    const sortedModels = [...models].sort((a, b) => b.power - a.power);
+
+    let best = null;
+    let second = null;
+
+    // Finde die Variante mit den wenigsten Platten, die den Bedarf deckt
+    for (const model of sortedModels) {
       const count = Math.ceil(need / model.power);
       const total = count * model.power;
+
       if (total >= need) {
-        suggestion1 = { model, count, total };
+        best = { model, count, total };
         break;
       }
     }
 
-    // Vorschlag 2: Nächstgrößeres Modell (Alternative mit weniger Platten)
-    let suggestion2 = null;
-    if (suggestion1) {
-      for (let i = suggestion1.model ? models.indexOf(suggestion1.model) + 1 : 0; i < models.length; i++) {
-        const model = models[i];
+    // Zweiten Vorschlag finden, wenn alternative Lösung ähnlich ist
+    if (best) {
+      for (const model of sortedModels) {
         const count = Math.ceil(need / model.power);
         const total = count * model.power;
-        if (total >= need && count <= suggestion1.count) {
-          suggestion2 = { model, count, total };
+        const diffPercent = Math.abs(total - best.total) / best.total;
+
+        if (
+          total >= need &&
+          diffPercent <= 0.15 && // nur wenn +/- 15%
+          model.name !== best.model.name
+        ) {
+          second = { model, count, total };
           break;
         }
       }
     }
 
-    // Warnung, wenn zu viele Platten benötigt werden
-    if (suggestion1 && suggestion1.count > maxPlates) {
+    // Warnung bei Überschreitung des Limits
+    if (best && best.count > maxPlates) {
       warnings.push(
-        `⚠️ Achtung: Maximal ${maxPlates} Platten empfohlen, benötigt wären ${suggestion1.count}.`
+        `⚠️ Achtung: Maximal ${maxPlates} Platten empfohlen, benötigt wären ${best.count}.`
       );
     }
 
-    // Vorschlag 1
-    if (suggestion1)
+    // Textausgabe
+    const suggestions = [];
+    if (best)
       suggestions.push(
-        `Vorschlag 1: ${suggestion1.count} × ${suggestion1.model.name} (${suggestion1.model.power} W)`
+        `Vorschlag 1: ${best.count} × ${best.model.name} (${best.model.power} W)`
       );
-
-    // Vorschlag 2
-    if (suggestion2 && suggestion2.model.name !== suggestion1.model.name)
+    if (second)
       suggestions.push(
-        `Vorschlag 2: ${suggestion2.count} × ${suggestion2.model.name} (${suggestion2.model.power} W)`
+        `Vorschlag 2: ${second.count} × ${second.model.name} (${second.model.power} W)`
       );
 
     return {
@@ -124,7 +131,7 @@ export default function App() {
     };
   }
 
-  // Neuen Raum hinzufügen
+  // Raum hinzufügen
   function addRoom() {
     const roomNumber = rooms.length + 1;
     const newRoom = {
