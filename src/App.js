@@ -145,6 +145,33 @@ export default function App() {
           <h1>Infrarot-Heizplatten Kalkulator</h1>
         </header>
 
+        {/* ===== Projektinformationen ===== */}
+        <div className="project-form no-print">
+          <label>Projektname</label>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="z. B. Musterhaus Wien"
+          />
+
+          <label>Adresse</label>
+          <input
+            type="text"
+            value={projectAddress}
+            onChange={(e) => setProjectAddress(e.target.value)}
+            placeholder="z. B. Hauptstraße 12, 1010 Wien"
+          />
+
+          <label>E-Mail</label>
+          <input
+            type="email"
+            value={projectEmail}
+            onChange={(e) => setProjectEmail(e.target.value)}
+            placeholder="z. B. info@siku.at"
+          />
+        </div>
+
         {(projectName || projectAddress || projectEmail) && (
           <div className="project-info">
             {projectName && <p><strong>Projekt:</strong> {projectName}</p>}
@@ -153,6 +180,7 @@ export default function App() {
           </div>
         )}
 
+        {/* ===== Räume ===== */}
         <div className="card">
           <h2>Räume</h2>
           {rooms.map((room, i) => {
