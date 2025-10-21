@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import "./App.css";
 
 export default function App() {
@@ -96,12 +95,12 @@ export default function App() {
 
     const txt = [
       `Vorschlag 1: ${s1.count} × ${s1.model.name} (${s1.model.power} W)
-→ ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`,
+-> ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`,
     ];
     if (s2)
       txt.push(
         `\nVorschlag 2: ${s2.count} × ${s2.model.name} (${s2.model.power} W)
-→ ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`
+-> ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`
       );
 
     return { need, text: txt.join("\n"), warning: warn };
@@ -131,7 +130,7 @@ export default function App() {
     let yPos = margin;
 
     const header = () => {
-      pdf.addImage("/siku_logo.png", "PNG", margin, yPos, 40, 10);
+      pdf.addImage("/siku_logo.png", "PNG", margin, yPos, 45, 16); // richtiges Seitenverhältnis
       pdf.setFontSize(14);
       pdf.setTextColor(0, 75, 141);
       pdf.text("Infrarot-Heizplatten Kalkulator", margin + 50, yPos + 7);
@@ -153,7 +152,7 @@ export default function App() {
     pdf.setFont("Helvetica", "");
     pdf.setFontSize(11);
 
-    rooms.forEach((room, i) => {
+    rooms.forEach((room) => {
       const r = calculateRoom(room);
       const block = [
         `\n${room.name}`,
