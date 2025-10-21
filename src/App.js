@@ -41,7 +41,6 @@ export default function App() {
     ],
   };
 
-  // Max. empfohlene Platten
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -60,7 +59,6 @@ export default function App() {
     return "IPP-FT01 (digital)";
   };
 
-  // Heizlast-Kalkulation
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
@@ -124,7 +122,7 @@ export default function App() {
       },
     ]);
 
-  /* ---------------- PDF-Export (Version 2.1) ---------------- */
+  /* ---------------- PDF-Export ---------------- */
   const exportPDF = async () => {
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = 210;
@@ -133,7 +131,7 @@ export default function App() {
     let yPos = margin;
 
     const header = () => {
-      pdf.addImage("/siku_logo.svg", "SVG", margin, yPos, 40, 10);
+      pdf.addImage("/siku_logo.png", "PNG", margin, yPos, 40, 10);
       pdf.setFontSize(14);
       pdf.setTextColor(0, 75, 141);
       pdf.text("Infrarot-Heizplatten Kalkulator", margin + 50, yPos + 7);
@@ -201,7 +199,7 @@ export default function App() {
       <div id="pdfPage" className="pdf-wrapper">
         <header className="pdf-header">
           <div className="pdf-header-left">
-            <img src="/siku_logo.svg" alt="SIKU Logo" />
+            <img src="/siku_logo.png" alt="SIKU Logo" />
           </div>
           <div className="pdf-header-right">
             <h1>Infrarot-Heizplatten Kalkulator</h1>
