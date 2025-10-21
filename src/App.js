@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import "./App.css";
 
 export default function App() {
@@ -60,64 +62,48 @@ export default function App() {
     const volume = room.area * room.height;
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
 
-    // Komfortfaktor (Bad, WC, Dusche, etc.)
-    const roomNameLower = room.name.toLowerCase();
-    if (
-      roomNameLower.includes("bad") ||
-      roomNameLower.includes("wc") ||
-      roomNameLower.includes("dusche")
-    ) {
+    const name = room.name.toLowerCase();
+    if (name.includes("bad") || name.includes("wc") || name.includes("dusche"))
       windowFactor *= 1.15;
-    }
 
     const need = Math.round(volume * factor * windowFactor);
-
     const models = plateOptions[room.mounting] || [];
-    if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
+    if (!models.length) return { need, text: "Keine Modelle verfügbar" };
 
     const sorted = [...models].sort((a, b) => b.power - a.power);
-    const combos = [];
-
-    for (const m of sorted) {
-      const count = Math.ceil(need / m.power);
-      combos.push({
-        model: m,
-        count,
-        total: count * m.power,
-      });
-    }
+    const combos = sorted.map((m) => ({
+      model: m,
+      count: Math.ceil(need / m.power),
+      total: Math.ceil(need / m.power) * m.power,
+    }));
 
     const valid = combos.filter((c) => c.total >= need);
-    if (valid.length === 0) return { need, text: "Keine passende Kombination" };
+    if (!valid.length) return { need, text: "Keine passende Kombination" };
 
     valid.sort((a, b) =>
       a.count === b.count ? a.total - b.total : a.count - b.count
     );
-    const suggestion1 = valid[0];
-    const suggestion2 = valid.length > 1 ? valid[1] : null;
 
-    const maxPlates = getMaxPlates(room.area);
-    let warning = "";
-    if (suggestion1.count > maxPlates) {
-      warning = `⚠️ Achtung: Maximal ${maxPlates} Platten empfohlen, benötigt wären ${suggestion1.count}.`;
-    }
+    const s1 = valid[0];
+    const s2 = valid.length > 1 ? valid[1] : null;
+    const max = getMaxPlates(room.area);
 
-    const lines = [];
-    lines.push(
-      `Vorschlag 1: ${suggestion1.count} × ${suggestion1.model.name} (${suggestion1.model.power} W)\n→ ${suggestion1.count} × ${getReceiver(
-        room.receiver
-      )}, 1 × ${getThermostat(room.thermostat)}`
-    );
+    const warn =
+      s1.count > max
+        ? `⚠️ Achtung: Maximal ${max} Platten empfohlen, benötigt wären ${s1.count}.`
+        : "";
 
-    if (suggestion2) {
-      lines.push(
-        `\nVorschlag 2: ${suggestion2.count} × ${suggestion2.model.name} (${suggestion2.model.power} W)\n→ ${suggestion2.count} × ${getReceiver(
-          room.receiver
-        )}, 1 × ${getThermostat(room.thermostat)}`
+    const txt = [
+      `Vorschlag 1: ${s1.count} × ${s1.model.name} (${s1.model.power} W)
+→ ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`,
+    ];
+    if (s2)
+      txt.push(
+        `\nVorschlag 2: ${s2.count} × ${s2.model.name} (${s2.model.power} W)
+→ ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`
       );
-    }
 
-    return { need, text: lines.join("\n"), warning };
+    return { need, text: txt.join("\n"), warning: warn };
   }
 
   const addRoom = () =>
@@ -129,7 +115,6 @@ export default function App() {
         height: 2.5,
         insulation: "30",
         windows: "normal",
-        usage: "dauer",
         thermostat: "FT01",
         receiver: "R01",
         mounting: "WW",
@@ -138,183 +123,181 @@ export default function App() {
 
   const deleteRoom = (i) => setRooms(rooms.filter((_, x) => x !== i));
 
-  const printPDF = () => {
-    window.print();
+  const exportPDF = async () => {
+    const input = document.getElementById("pdfContent");
+    const canvas = await html2canvas(input, { scale: 2 });
+    const img = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const width = 210;
+    const height = (canvas.height * width) / canvas.width;
+    pdf.addImage(img, "PNG", 0, 0, width, height);
+    const filename = projectName
+      ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
+      : "SIKU_Kalkulation.pdf";
+    pdf.save(filename);
   };
 
   return (
     <div className="container">
-      <header>
-        <img src="/siku_logo.svg" alt="SIKU Logo" />
-        <h1>Infrarot-Heizplatten Kalkulator</h1>
-      </header>
+      <div id="pdfContent">
+        <header>
+          <img src="/siku_logo.svg" alt="SIKU Logo" />
+          <h1>Infrarot-Heizplatten Kalkulator</h1>
+        </header>
 
-      <div className="card no-print">
-        <h2>Projekt-Daten (optional)</h2>
-        <input
-          type="text"
-          placeholder="Projektname / Kunde"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Adresse"
-          value={projectAddress}
-          onChange={(e) => setProjectAddress(e.target.value)}
-        />
-        <input
-          type="email"
-          placeholder="E-Mail"
-          value={projectEmail}
-          onChange={(e) => setProjectEmail(e.target.value)}
-        />
+        {(projectName || projectAddress || projectEmail) && (
+          <div className="project-info">
+            {projectName && <p><strong>Projekt:</strong> {projectName}</p>}
+            {projectAddress && <p><strong>Adresse:</strong> {projectAddress}</p>}
+            {projectEmail && <p><strong>E-Mail:</strong> {projectEmail}</p>}
+          </div>
+        )}
+
+        <div className="card">
+          <h2>Räume</h2>
+          {rooms.map((room, i) => {
+            const r = calculateRoom(room);
+            return (
+              <div key={i} className="room">
+                <button
+                  type="button"
+                  className="delete-room-btn no-print"
+                  onClick={() => deleteRoom(i)}
+                >
+                  ❌
+                </button>
+
+                <div className="inputs no-print">
+                  <label>Raumname</label>
+                  <input
+                    type="text"
+                    value={room.name}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].name = e.target.value;
+                      setRooms(n);
+                    }}
+                  />
+
+                  <label>Fläche (m²)</label>
+                  <input
+                    type="number"
+                    value={room.area}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].area = parseFloat(e.target.value);
+                      setRooms(n);
+                    }}
+                  />
+
+                  <label>Deckenhöhe (m)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={room.height}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].height = parseFloat(e.target.value);
+                      setRooms(n);
+                    }}
+                  />
+
+                  <label>Dämmstandard</label>
+                  <select
+                    value={room.insulation}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].insulation = e.target.value;
+                      setRooms(n);
+                    }}
+                  >
+                    {insulationOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label>Fensteranteil</label>
+                  <select
+                    value={room.windows}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].windows = e.target.value;
+                      setRooms(n);
+                    }}
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="hoch">Hoch</option>
+                  </select>
+
+                  <label>Thermostat (pro Raum)</label>
+                  <select
+                    value={room.thermostat}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].thermostat = e.target.value;
+                      setRooms(n);
+                    }}
+                  >
+                    <option value="FT01">IPP-FT01 (digital)</option>
+                    <option value="BT010">BT010 (einfach)</option>
+                    <option value="BT003">BT003 (Funk)</option>
+                  </select>
+
+                  <label>Empfänger (pro Platte)</label>
+                  <select
+                    value={room.receiver}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].receiver = e.target.value;
+                      setRooms(n);
+                    }}
+                  >
+                    <option value="R01">IPP-R01 (Unterputz)</option>
+                    <option value="R02">IPP-R02 (Aufputz)</option>
+                  </select>
+
+                  <label>Montageart</label>
+                  <select
+                    value={room.mounting}
+                    onChange={(e) => {
+                      const n = [...rooms];
+                      n[i].mounting = e.target.value;
+                      setRooms(n);
+                    }}
+                  >
+                    <option value="WW">Wand (WW)</option>
+                    <option value="DW">Decke abgehängt (DW)</option>
+                    <option value="DC">Decke direkt (DC)</option>
+                  </select>
+                </div>
+
+                <div className="result">
+                  <strong>{room.name}</strong>
+                  <p>
+                    <strong>Bedarf:</strong> <strong>{r.need} W</strong>
+                  </p>
+                  <pre>{r.text}</pre>
+                  {r.warning && (
+                    <p style={{ color: "red", fontWeight: "bold" }}>
+                      {r.warning}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="card">
-        <h2>Räume</h2>
-        {rooms.length === 0 && <p>🔹 Noch keine Räume hinzugefügt.</p>}
-
-        {rooms.map((room, i) => {
-          const result = calculateRoom(room);
-          return (
-            <div key={i} className="room">
-              <button
-                type="button"
-                className="delete-room-btn no-print"
-                onClick={() => deleteRoom(i)}
-              >
-                ❌
-              </button>
-
-              <div className="inputs no-print">
-                <label>Raumname</label>
-                <input
-                  type="text"
-                  value={room.name}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].name = e.target.value;
-                    setRooms(n);
-                  }}
-                />
-
-                <label>Fläche (m²)</label>
-                <input
-                  type="number"
-                  value={room.area}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].area = parseFloat(e.target.value);
-                    setRooms(n);
-                  }}
-                />
-
-                <label>Deckenhöhe (m)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={room.height}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].height = parseFloat(e.target.value);
-                    setRooms(n);
-                  }}
-                />
-
-                <label>Dämmstandard</label>
-                <select
-                  value={room.insulation}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].insulation = e.target.value;
-                    setRooms(n);
-                  }}
-                >
-                  {insulationOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-
-                <label>Fensteranteil</label>
-                <select
-                  value={room.windows}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].windows = e.target.value;
-                    setRooms(n);
-                  }}
-                >
-                  <option value="normal">Normal</option>
-                  <option value="hoch">Hoch</option>
-                </select>
-
-                <label>Thermostat (pro Raum)</label>
-                <select
-                  value={room.thermostat}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].thermostat = e.target.value;
-                    setRooms(n);
-                  }}
-                >
-                  <option value="FT01">IPP-FT01 (digital)</option>
-                  <option value="BT010">BT010 (einfach)</option>
-                  <option value="BT003">BT003 (Funk)</option>
-                </select>
-
-                <label>Empfänger (pro Platte)</label>
-                <select
-                  value={room.receiver}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].receiver = e.target.value;
-                    setRooms(n);
-                  }}
-                >
-                  <option value="R01">IPP-R01 (Unterputz)</option>
-                  <option value="R02">IPP-R02 (Aufputz)</option>
-                </select>
-
-                <label>Montageart</label>
-                <select
-                  value={room.mounting}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].mounting = e.target.value;
-                    setRooms(n);
-                  }}
-                >
-                  <option value="WW">Wand (WW)</option>
-                  <option value="DW">Decke abgehängt (DW)</option>
-                  <option value="DC">Decke direkt (DC)</option>
-                </select>
-              </div>
-
-              <div className="result">
-                <strong>{room.name}</strong>
-                <p><strong>Bedarf:</strong> {result.need} W</p>
-                <pre>{result.text}</pre>
-                {result.warning && (
-                  <p style={{ color: "red", fontWeight: "bold" }}>
-                    {result.warning}
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="no-print">
-          <button onClick={addRoom} className="add-room-btn">
-            + Raum hinzufügen
-          </button>
-          <button onClick={printPDF} className="pdf-btn">
-            📄 PDF erstellen
-          </button>
-        </div>
+      <div className="no-print">
+        <button onClick={addRoom} className="add-room-btn">
+          + Raum hinzufügen
+        </button>
+        <button onClick={exportPDF} className="pdf-btn">
+          📄 PDF erstellen
+        </button>
       </div>
     </div>
   );

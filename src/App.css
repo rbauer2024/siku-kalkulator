@@ -1,3 +1,4 @@
+/* ====== Basislayout ====== */
 body {
   font-family: Arial, sans-serif;
   background-color: #f4f6f8;
@@ -12,12 +13,12 @@ body {
   padding: 20px;
 }
 
-/* Header */
+/* ====== Header ====== */
 header {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 header img {
@@ -31,7 +32,22 @@ header h1 {
   margin: 0;
 }
 
-/* Card + Layout */
+/* ====== Projektinformationen ====== */
+.project-info {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.project-info p {
+  margin: 2px 0;
+}
+
+.project-info strong {
+  color: #003366;
+}
+
+/* ====== Karten / Boxen ====== */
 .card {
   background: #fff;
   border-radius: 12px;
@@ -46,7 +62,7 @@ header h1 {
   color: #003366;
 }
 
-/* Inputs */
+/* ====== Eingabeelemente ====== */
 label {
   font-weight: bold;
   display: block;
@@ -64,7 +80,7 @@ select {
   box-sizing: border-box;
 }
 
-/* Room Layout */
+/* ====== Raum-Layout ====== */
 .room {
   display: flex;
   justify-content: space-between;
@@ -95,17 +111,20 @@ select {
   max-width: 600px;
 }
 
+/* ====== Textgestaltung im Ergebnis ====== */
 .result strong {
   color: #003366;
   font-size: 1.1rem;
 }
 
+/* „Bedarf“ und Watt fett */
+.result p:first-of-type strong,
 .result p:first-of-type {
-  font-weight: bold;
+  font-weight: 700;
   color: #111;
 }
 
-/* Buttons */
+/* ====== Buttons ====== */
 .add-room-btn,
 .pdf-btn {
   margin-top: 10px;
@@ -117,6 +136,7 @@ select {
   cursor: pointer;
   color: white;
   background-color: #0078d4;
+  transition: background 0.2s;
 }
 
 .add-room-btn:hover,
@@ -124,7 +144,7 @@ select {
   background-color: #005fa3;
 }
 
-/* Delete Button */
+/* Löschen-Button */
 .delete-room-btn {
   position: absolute;
   top: 10px;
@@ -136,7 +156,7 @@ select {
   cursor: pointer;
 }
 
-/* WARNUNG */
+/* Warnhinweise */
 .result p[style*="red"] {
   background: #ffeaea;
   border: 1px solid #ffcccc;
@@ -144,14 +164,17 @@ select {
   padding: 8px;
 }
 
-/* ---- DRUCK ---- */
+/* ====== Druckoptimierung ====== */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 20mm;
+    size: A4 portrait !important;
+    margin: 20mm !important;
   }
 
-  body {
+  html, body {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto;
     background: white;
     -webkit-print-color-adjust: exact;
   }
