@@ -9,7 +9,7 @@ export default function App() {
   const [projectEmail, setProjectEmail] = useState("");
   const [rooms, setRooms] = useState([]);
 
-  // Dämmstandard-Auswahl
+  // Dämmstandard
   const insulationOptions = [
     { label: "Sehr gut (20 W/m³)", value: "20" },
     { label: "Gut (25 W/m³)", value: "25" },
@@ -17,7 +17,7 @@ export default function App() {
     { label: "Altbau (35 W/m³)", value: "35" },
   ];
 
-  // Heizplatten je Montageart
+  // Heizplatten
   const plateOptions = {
     WW: [
       { name: "SIKU IPP 160 WW", power: 160 },
@@ -41,6 +41,7 @@ export default function App() {
     ],
   };
 
+  // Max. empfohlene Platten
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -59,7 +60,7 @@ export default function App() {
     return "IPP-FT01 (digital)";
   };
 
-  // Heizbedarf + Vorschläge berechnen
+  // Heizlast-Kalkulation
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
@@ -123,50 +124,71 @@ export default function App() {
       },
     ]);
 
-  /* ---------------- PDF-Export (Version 2.0) ---------------- */
+  /* ---------------- PDF-Export (Version 2.1) ---------------- */
   const exportPDF = async () => {
-    const node = document.getElementById("pdfPage");
-
-    const canvas = await html2canvas(node, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      scrollY: 0,
-      windowWidth: document.documentElement.clientWidth,
-    });
-
-    const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 12;
+    let yPos = margin;
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 10; // mm
-    const usableWidth = pageWidth - margin * 2;
-    const imgHeight = (canvas.height * usableWidth) / canvas.width;
-    const usableHeight = pageHeight - margin * 2;
-    const totalPages =
-      imgHeight <= usableHeight
-        ? 1
-        : 1 + Math.ceil((imgHeight - usableHeight) / usableHeight);
+    const header = () => {
+      pdf.addImage("/siku_logo.svg", "SVG", margin, yPos, 40, 10);
+      pdf.setFontSize(14);
+      pdf.setTextColor(0, 75, 141);
+      pdf.text("Infrarot-Heizplatten Kalkulator", margin + 50, yPos + 7);
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      let offset = yPos + 14;
+      if (projectName) pdf.text(`Projekt: ${projectName}`, margin, offset);
+      if (projectAddress)
+        pdf.text(`Adresse: ${projectAddress}`, margin, (offset += 5));
+      if (projectEmail)
+        pdf.text(`E-Mail: ${projectEmail}`, margin, (offset += 5));
+      yPos = offset + 10;
+      pdf.setDrawColor(0, 75, 141);
+      pdf.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+    };
 
-    // Seite 1
-    pdf.addImage(imgData, "PNG", margin, margin, usableWidth, imgHeight);
-    pdf.setFontSize(9);
-    pdf.text(`Seite 1 von ${totalPages}`, pageWidth / 2, pageHeight - 5, {
-      align: "center",
+    header();
+    pdf.setFont("Helvetica", "");
+    pdf.setFontSize(11);
+
+    rooms.forEach((room, i) => {
+      const r = calculateRoom(room);
+      const block = [
+        `\n${room.name}`,
+        `Bedarf: ${r.need} W`,
+        r.text,
+        r.warning ? r.warning : "",
+      ].join("\n");
+
+      const textLines = pdf.splitTextToSize(block, pageWidth - 2 * margin);
+      const blockHeight = textLines.length * 5 + 5;
+
+      if (yPos + blockHeight > pageHeight - margin - 10) {
+        pdf.text(
+          `Seite ${pdf.internal.getNumberOfPages()} von …`,
+          pageWidth / 2,
+          pageHeight - 5,
+          { align: "center" }
+        );
+        pdf.addPage();
+        yPos = margin;
+        header();
+      }
+
+      pdf.text(textLines, margin, yPos);
+      yPos += blockHeight + 5;
     });
 
-    // weitere Seiten
-    let printedHeight = usableHeight;
-    for (let page = 2; page <= totalPages; page++) {
-      pdf.addPage();
-      const y = margin - printedHeight;
-      pdf.addImage(imgData, "PNG", margin, y, usableWidth, imgHeight);
-      pdf.setFontSize(9);
-      pdf.text(`Seite ${page} von ${totalPages}`, pageWidth / 2, pageHeight - 5, {
-        align: "center",
-      });
-      printedHeight += usableHeight;
-    }
+    pdf.text(
+      `Seite ${pdf.internal.getNumberOfPages()} von ${pdf.internal.getNumberOfPages()}`,
+      pageWidth / 2,
+      pageHeight - 5,
+      { align: "center" }
+    );
 
     const filename = projectName
       ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
@@ -337,9 +359,7 @@ export default function App() {
                   </p>
                   <pre>{r.text}</pre>
                   {r.warning && (
-                    <p style={{ color: "red", fontWeight: "bold" }}>
-                      {r.warning}
-                    </p>
+                    <p style={{ color: "red", fontWeight: "bold" }}>{r.warning}</p>
                   )}
                 </div>
               </div>
