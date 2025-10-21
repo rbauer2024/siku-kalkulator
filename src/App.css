@@ -1,17 +1,23 @@
+/* ===============================
+   Allgemeines Layout & Schrift
+   =============================== */
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #f7f9fc;
 }
 
-/* Layout-Container */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
 
-/* Kopfbereich */
+/* ===============================
+   Kopfbereich
+   =============================== */
+
 header {
   display: flex;
   align-items: center;
@@ -30,7 +36,10 @@ header h1 {
   margin: 0;
 }
 
-/* Karten-Boxen */
+/* ===============================
+   Karten / Boxen
+   =============================== */
+
 .card {
   background: #fff;
   padding: 20px;
@@ -45,11 +54,14 @@ header h1 {
   color: #000;
 }
 
-/* Raum-Layout (links Eingaben, rechts Ergebnis) */
+/* ===============================
+   Raum Layout: Eingabe & Ergebnis
+   =============================== */
+
 .room {
   position: relative;
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1.3fr 1.7fr;  /* breitere Ergebnisbox */
   gap: 20px;
   margin-bottom: 25px;
   padding: 20px;
@@ -58,7 +70,10 @@ header h1 {
   background: #fafafa;
 }
 
-/* Eingabefelder */
+/* ===============================
+   Eingaben (linke Spalte)
+   =============================== */
+
 .inputs label {
   display: block;
   font-weight: 600;
@@ -73,9 +88,13 @@ header h1 {
   padding: 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  background-color: #fff;
 }
 
-/* Ergebnisbereich */
+/* ===============================
+   Ergebnisbereich (rechte Spalte)
+   =============================== */
+
 .result {
   background: #f4f6f9;
   border-left: 4px solid #2559a1;
@@ -88,7 +107,6 @@ header h1 {
   justify-content: flex-start;
 }
 
-/* Raumname */
 .result strong {
   display: block;
   margin-bottom: 8px;
@@ -107,11 +125,12 @@ header h1 {
   margin-top: 8px;
   margin-bottom: 8px;
   font-family: "Courier New", monospace;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
   color: #333;
 }
 
-/* Warnmeldungen */
+/* Warnungen */
 .result p[style] {
   margin-top: 8px;
   padding: 6px 8px;
@@ -123,7 +142,10 @@ header h1 {
   font-weight: 600;
 }
 
-/* Buttons */
+/* ===============================
+   Buttons
+   =============================== */
+
 .add-room-btn,
 .pdf-btn {
   margin-top: 15px;
@@ -154,7 +176,10 @@ header h1 {
   background-color: #27ae60;
 }
 
-/* Löschen-Button */
+/* ===============================
+   Löschen-Button
+   =============================== */
+
 .delete-room-btn {
   position: absolute;
   top: 10px;
@@ -172,8 +197,16 @@ header h1 {
   background-color: #c0392b;
 }
 
-/* Druckversion */
+/* ===============================
+   Druckansicht (PDF)
+   =============================== */
+
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm;
+  }
+
   body {
     background: #fff;
   }
@@ -182,11 +215,17 @@ header h1 {
     display: none !important;
   }
 
+  .container {
+    padding: 0;
+    margin: 0;
+  }
+
   .room {
     display: block;
     border: none;
     background: transparent;
     padding: 10px 0;
+    margin: 0;
   }
 
   .result {
@@ -195,7 +234,15 @@ header h1 {
     font-size: 1rem;
   }
 
+  header {
+    margin-bottom: 15px;
+  }
+
   header img {
     max-width: 200px;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
   }
 }
