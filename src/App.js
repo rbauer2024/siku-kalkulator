@@ -2,20 +2,15 @@ import React, { useState, useEffect } from "react";
 import "./App.css";
 
 export default function App() {
-  // Projekt-Infos
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [projectEmail, setProjectEmail] = useState("");
-
-  // Räume: Startet leer
   const [rooms, setRooms] = useState([]);
 
-  // Alte Daten beim Laden löschen
   useEffect(() => {
     sessionStorage.clear();
   }, []);
 
-  // Dämmoptionen
   const insulationOptions = [
     { label: "Sehr gut (20 W/m³)", value: "20" },
     { label: "Gut (25 W/m³)", value: "25" },
@@ -23,7 +18,6 @@ export default function App() {
     { label: "Altbau (35 W/m³)", value: "35" },
   ];
 
-  // Heizplatten-Optionen
   const plateOptions = {
     WW: [
       { name: "SIKU IPP 160 WW", power: 160 },
@@ -47,7 +41,6 @@ export default function App() {
     ],
   };
 
-  // Maximal empfohlene Platten je Fläche
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -58,11 +51,16 @@ export default function App() {
     return 8;
   }
 
-  // Berechnung pro Raum
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
-    const need = Math.round(volume * factor);
+
+    // Fensteranteil berücksichtigen
+    let windowFactor = 1.0;
+    if (room.windows === "hoch") windowFactor = 1.2;
+    if (room.windows === "gering") windowFactor = 0.9;
+
+    const need = Math.round(volume * factor * windowFactor);
 
     const models = plateOptions[room.mounting] || [];
     if (models.length === 0)
@@ -71,24 +69,23 @@ export default function App() {
     const maxPlates = getMaxPlates(room.area);
     const warnings = [];
 
-    // Modelle nach Leistung sortieren (absteigend)
+    // Modelle absteigend nach Leistung sortieren
     const sortedModels = [...models].sort((a, b) => b.power - a.power);
 
     let best = null;
     let second = null;
 
-    // Finde die Variante mit den wenigsten Platten, die den Bedarf deckt
+    // 1️⃣ Beste Lösung: möglichst wenige Platten
     for (const model of sortedModels) {
       const count = Math.ceil(need / model.power);
       const total = count * model.power;
-
       if (total >= need) {
         best = { model, count, total };
         break;
       }
     }
 
-    // Zweiten Vorschlag finden, wenn alternative Lösung ähnlich ist
+    // 2️⃣ Zweiter Vorschlag: ähnliche Leistung (±15 %)
     if (best) {
       for (const model of sortedModels) {
         const count = Math.ceil(need / model.power);
@@ -97,7 +94,7 @@ export default function App() {
 
         if (
           total >= need &&
-          diffPercent <= 0.15 && // nur wenn +/- 15%
+          diffPercent <= 0.15 &&
           model.name !== best.model.name
         ) {
           second = { model, count, total };
@@ -106,32 +103,42 @@ export default function App() {
       }
     }
 
-    // Warnung bei Überschreitung des Limits
+    // 3️⃣ Warnung bei Flächenlimit
     if (best && best.count > maxPlates) {
       warnings.push(
         `⚠️ Achtung: Maximal ${maxPlates} Platten empfohlen, benötigt wären ${best.count}.`
       );
     }
 
-    // Textausgabe
+    // 4️⃣ Vorschlagstexte inkl. Empfänger & Thermostat-Bezeichnungen
     const suggestions = [];
+    const thermostatText =
+      room.thermostat === "FT01"
+        ? "IPP-FT01 (digital)"
+        : room.thermostat === "BT010"
+        ? "BT010 (einfach)"
+        : "BT003 (Funk)";
+    const receiverText =
+      room.receiver === "R01"
+        ? "IPP-R01 (Unterputz)"
+        : "IPP-R02 (Aufputz)";
+
     if (best)
       suggestions.push(
-        `Vorschlag 1: ${best.count} × ${best.model.name} (${best.model.power} W)`
+        `Vorschlag 1: ${best.count} × ${best.model.name} (${best.model.power} W)\n→ ${best.count} × ${receiverText}, 1 × ${thermostatText}`
       );
     if (second)
       suggestions.push(
-        `Vorschlag 2: ${second.count} × ${second.model.name} (${second.model.power} W)`
+        `Vorschlag 2: ${second.count} × ${second.model.name} (${second.model.power} W)\n→ ${second.count} × ${receiverText}, 1 × ${thermostatText}`
       );
 
     return {
       need,
-      text: suggestions.join("\n"),
+      text: suggestions.join("\n\n"),
       warnings,
     };
   }
 
-  // Raum hinzufügen
   function addRoom() {
     const roomNumber = rooms.length + 1;
     const newRoom = {
@@ -148,7 +155,6 @@ export default function App() {
     setRooms([...rooms, newRoom]);
   }
 
-  // Raum löschen
   function deleteRoom(index) {
     const newRooms = [...rooms];
     newRooms.splice(index, 1);
@@ -157,13 +163,11 @@ export default function App() {
 
   return (
     <div className="container">
-      {/* HEADER */}
       <header>
         <img src="/siku_logo.svg" alt="SIKU Logo" />
         <h1>Infrarot-Heizplatten Kalkulator</h1>
       </header>
 
-      {/* Projekt-Daten */}
       <div className="card no-print">
         <h2>Projekt-Daten (optional)</h2>
         <input
@@ -186,7 +190,6 @@ export default function App() {
         />
       </div>
 
-      {/* Räume */}
       <div className="card">
         <h2>Räume</h2>
 
@@ -205,7 +208,6 @@ export default function App() {
                 ❌
               </button>
 
-              {/* Eingaben */}
               <div className="inputs no-print">
                 <label>Raumname</label>
                 <input
@@ -266,6 +268,7 @@ export default function App() {
                     setRooms(newRooms);
                   }}
                 >
+                  <option value="gering">Gering</option>
                   <option value="normal">Normal</option>
                   <option value="hoch">Hoch</option>
                 </select>
@@ -325,7 +328,6 @@ export default function App() {
                 </select>
               </div>
 
-              {/* Ergebnis */}
               <div className="result">
                 <strong>{room.name || `Raum ${index + 1}`}</strong>
                 <p>Bedarf: {result.need} W</p>
@@ -340,7 +342,6 @@ export default function App() {
           );
         })}
 
-        {/* Buttons */}
         <div className="no-print">
           <button onClick={addRoom} className="add-room-btn">
             + Raum hinzufügen
