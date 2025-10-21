@@ -7,7 +7,6 @@ export default function App() {
   const [projectEmail, setProjectEmail] = useState("");
   const [rooms, setRooms] = useState([]);
 
-  // Dämmoptionen
   const insulationOptions = [
     { label: "Sehr gut (20 W/m³)", value: "20" },
     { label: "Gut (25 W/m³)", value: "25" },
@@ -15,7 +14,6 @@ export default function App() {
     { label: "Altbau (35 W/m³)", value: "35" },
   ];
 
-  // Modellübersicht
   const plateOptions = {
     WW: [
       { name: "SIKU IPP 160 WW", power: 160 },
@@ -39,7 +37,6 @@ export default function App() {
     ],
   };
 
-  // Maximal empfohlene Platten
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -50,7 +47,6 @@ export default function App() {
     return 8;
   }
 
-  // Hilfsfunktionen
   const getReceiver = (code) =>
     code === "R02" ? "IPP-R02 (Aufputz)" : "IPP-R01 (Unterputz)";
   const getThermostat = (code) => {
@@ -59,20 +55,29 @@ export default function App() {
     return "IPP-FT01 (digital)";
   };
 
-  // Hauptberechnung
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
+
+    // Komfortfaktor (Bad, WC, Dusche, etc.)
+    const roomNameLower = room.name.toLowerCase();
+    if (
+      roomNameLower.includes("bad") ||
+      roomNameLower.includes("wc") ||
+      roomNameLower.includes("dusche")
+    ) {
+      windowFactor *= 1.15;
+    }
+
     const need = Math.round(volume * factor * windowFactor);
 
     const models = plateOptions[room.mounting] || [];
     if (models.length === 0) return { need, text: "Keine Modelle verfügbar" };
 
-    const sorted = [...models].sort((a, b) => a.power - b.power);
+    const sorted = [...models].sort((a, b) => b.power - a.power);
     const combos = [];
 
-    // Alle möglichen Kombinationen
     for (const m of sorted) {
       const count = Math.ceil(need / m.power);
       combos.push({
@@ -82,15 +87,11 @@ export default function App() {
       });
     }
 
-    // Nur jene, die den Bedarf decken
     const valid = combos.filter((c) => c.total >= need);
     if (valid.length === 0) return { need, text: "Keine passende Kombination" };
 
-    // Effizienteste Lösung: wenigste Platten, geringste Überdeckung
     valid.sort((a, b) =>
-      a.count === b.count
-        ? a.total - b.total
-        : a.count - b.count
+      a.count === b.count ? a.total - b.total : a.count - b.count
     );
     const suggestion1 = valid[0];
     const suggestion2 = valid.length > 1 ? valid[1] : null;
@@ -101,7 +102,6 @@ export default function App() {
       warning = `⚠️ Achtung: Maximal ${maxPlates} Platten empfohlen, benötigt wären ${suggestion1.count}.`;
     }
 
-    // Textausgabe
     const lines = [];
     lines.push(
       `Vorschlag 1: ${suggestion1.count} × ${suggestion1.model.name} (${suggestion1.model.power} W)\n→ ${suggestion1.count} × ${getReceiver(
@@ -120,7 +120,6 @@ export default function App() {
     return { need, text: lines.join("\n"), warning };
   }
 
-  // Raumsteuerung
   const addRoom = () =>
     setRooms([
       ...rooms,
@@ -139,7 +138,10 @@ export default function App() {
 
   const deleteRoom = (i) => setRooms(rooms.filter((_, x) => x !== i));
 
-  // Render
+  const printPDF = () => {
+    window.print();
+  };
+
   return (
     <div className="container">
       <header>
@@ -249,19 +251,6 @@ export default function App() {
                   <option value="hoch">Hoch</option>
                 </select>
 
-                <label>Nutzungsart</label>
-                <select
-                  value={room.usage}
-                  onChange={(e) => {
-                    const n = [...rooms];
-                    n[i].usage = e.target.value;
-                    setRooms(n);
-                  }}
-                >
-                  <option value="dauer">Dauerbetrieb</option>
-                  <option value="zeitweise">Zeitweise</option>
-                </select>
-
                 <label>Thermostat (pro Raum)</label>
                 <select
                   value={room.thermostat}
@@ -304,9 +293,9 @@ export default function App() {
                 </select>
               </div>
 
-              <div className="result" style={{ maxWidth: "500px" }}>
+              <div className="result">
                 <strong>{room.name}</strong>
-                <p>Bedarf: {result.need} W</p>
+                <p><strong>Bedarf:</strong> {result.need} W</p>
                 <pre>{result.text}</pre>
                 {result.warning && (
                   <p style={{ color: "red", fontWeight: "bold" }}>
@@ -322,7 +311,7 @@ export default function App() {
           <button onClick={addRoom} className="add-room-btn">
             + Raum hinzufügen
           </button>
-          <button onClick={() => window.print()} className="pdf-btn">
+          <button onClick={printPDF} className="pdf-btn">
             📄 PDF erstellen
           </button>
         </div>
