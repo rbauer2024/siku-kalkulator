@@ -8,9 +8,9 @@ export default function App() {
   const [projectEmail, setProjectEmail] = useState("");
   const [rooms, setRooms] = useState([]);
 
-  /* ----------------------------------
-     Dämmstandard & Geräteoptionen
-  ---------------------------------- */
+  // ------------------------------------------------------------
+  // Dämmstandard & Heizplatten
+  // ------------------------------------------------------------
   const insulationOptions = [
     { label: "Sehr gut (20 W/m³)", value: "20" },
     { label: "Gut (25 W/m³)", value: "25" },
@@ -41,9 +41,9 @@ export default function App() {
     ],
   };
 
-  /* ----------------------------------
-     Logik: Max. Plattenzahl je Fläche
-  ---------------------------------- */
+  // ------------------------------------------------------------
+  // Maximal empfohlene Plattenzahl je Fläche
+  // ------------------------------------------------------------
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -62,9 +62,9 @@ export default function App() {
     return "IPP-FT01 (digital)";
   };
 
-  /* ----------------------------------
-     Berechnung pro Raum
-  ---------------------------------- */
+  // ------------------------------------------------------------
+  // Berechnung pro Raum
+  // ------------------------------------------------------------
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
@@ -113,9 +113,9 @@ export default function App() {
     return { need, text: txt.join("\n"), warning: warn };
   }
 
-  /* ----------------------------------
-     Raumverwaltung
-  ---------------------------------- */
+  // ------------------------------------------------------------
+  // Raumverwaltung
+  // ------------------------------------------------------------
   const addRoom = () =>
     setRooms([
       ...rooms,
@@ -131,49 +131,44 @@ export default function App() {
       },
     ]);
 
-  /* ----------------------------------
-     PDF-Export
-  ---------------------------------- */
-  const exportPDF = async () => {
+  // ------------------------------------------------------------
+  // PDF-Export
+  // ------------------------------------------------------------
+  const exportPDF = () => {
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = 210;
     const pageHeight = 297;
     const margin = 15;
     let yPos = margin;
 
+    // ---- Header ------------------------------------------------
     const header = () => {
-      // Logo
       pdf.addImage("/siku_logo.png", "PNG", pageWidth / 2 - 22, yPos, 44, 15);
+      yPos += 23;
 
-      // Titel
-      yPos += 22;
       pdf.setFontSize(16);
       pdf.setTextColor(37, 89, 161);
       pdf.text("Infrarot-Heizplatten Kalkulator", pageWidth / 2, yPos, {
         align: "center",
       });
 
-      // Projektinfos
+      yPos += 10;
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
-      yPos += 8;
-      if (projectName)
-        pdf.text(`Projekt: ${projectName}`, margin, yPos + 4);
-      if (projectAddress)
-        pdf.text(`Adresse: ${projectAddress}`, margin, yPos + 9);
-      if (projectEmail)
-        pdf.text(`E-Mail: ${projectEmail}`, margin, yPos + 14);
-      yPos += 25;
+      if (projectName) pdf.text(`Projekt: ${projectName}`, margin, yPos);
+      if (projectAddress) pdf.text(`Adresse: ${projectAddress}`, margin, yPos + 5);
+      if (projectEmail) pdf.text(`E-Mail: ${projectEmail}`, margin, yPos + 10);
+      yPos += 20;
 
-      // Linie
       pdf.setDrawColor(37, 89, 161);
       pdf.setLineWidth(0.4);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 10;
+      yPos += 8;
     };
 
     header();
 
+    // ---- Inhalt ------------------------------------------------
     pdf.setFont("Helvetica", "");
     pdf.setFontSize(11);
 
@@ -221,12 +216,16 @@ export default function App() {
       }
 
       yPos += 15;
+
+      // ---- Dezente SIKU-blaue Trennlinie ----
       if (index < rooms.length - 1) {
-        pdf.setDrawColor(200);
-        pdf.line(margin, yPos - 4, pageWidth - margin, yPos - 4);
+        pdf.setDrawColor(37, 89, 161);
+        pdf.setLineWidth(0.2);
+        pdf.line(margin, yPos - 3, pageWidth - margin, yPos - 3);
       }
     });
 
+    // Seitenfuß
     pdf.text(
       `Seite ${pdf.internal.getNumberOfPages()}`,
       pageWidth / 2,
@@ -240,9 +239,9 @@ export default function App() {
     pdf.save(filename);
   };
 
-  /* ----------------------------------
-     Rendering
-  ---------------------------------- */
+  // ------------------------------------------------------------
+  // Rendering
+  // ------------------------------------------------------------
   return (
     <div className="container">
       <header>
@@ -275,9 +274,7 @@ export default function App() {
       <div className="card">
         <h2>Räume</h2>
 
-        {rooms.length === 0 && (
-          <p>🔹 Noch keine Räume hinzugefügt.</p>
-        )}
+        {rooms.length === 0 && <p>🔹 Noch keine Räume hinzugefügt.</p>}
 
         {rooms.map((room, index) => {
           const r = calculateRoom(room);
@@ -304,6 +301,7 @@ export default function App() {
                     setRooms(n);
                   }}
                 />
+
                 <label>Fläche (m²)</label>
                 <input
                   type="number"
@@ -314,6 +312,7 @@ export default function App() {
                     setRooms(n);
                   }}
                 />
+
                 <label>Deckenhöhe (m)</label>
                 <input
                   type="number"
@@ -325,6 +324,7 @@ export default function App() {
                     setRooms(n);
                   }}
                 />
+
                 <label>Dämmstandard</label>
                 <select
                   value={room.insulation}
@@ -340,6 +340,7 @@ export default function App() {
                     </option>
                   ))}
                 </select>
+
                 <label>Fensteranteil</label>
                 <select
                   value={room.windows}
@@ -352,6 +353,7 @@ export default function App() {
                   <option value="normal">Normal</option>
                   <option value="hoch">Hoch</option>
                 </select>
+
                 <label>Thermostat (pro Raum)</label>
                 <select
                   value={room.thermostat}
@@ -365,6 +367,7 @@ export default function App() {
                   <option value="BT010">BT010 (einfach)</option>
                   <option value="BT003">BT003 (Funk)</option>
                 </select>
+
                 <label>Empfänger (pro Platte)</label>
                 <select
                   value={room.receiver}
@@ -377,6 +380,7 @@ export default function App() {
                   <option value="R01">IPP-R01 (Unterputz)</option>
                   <option value="R02">IPP-R02 (Aufputz)</option>
                 </select>
+
                 <label>Montageart</label>
                 <select
                   value={room.mounting}
