@@ -51,6 +51,7 @@ export default function App() {
 
   const getReceiver = (code) =>
     code === "R02" ? "IPP-R02 (Aufputz)" : "IPP-R01 (Unterputz)";
+
   const getThermostat = (code) => {
     if (code === "BT010") return "BT010 (einfach)";
     if (code === "BT003") return "BT003 (Funk)";
@@ -61,7 +62,6 @@ export default function App() {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
-
     const name = room.name.toLowerCase();
     if (name.includes("bad") || name.includes("wc") || name.includes("dusche"))
       windowFactor *= 1.15;
@@ -121,16 +121,23 @@ export default function App() {
       },
     ]);
 
-  const deleteRoom = (i) => setRooms(rooms.filter((_, x) => x !== i));
-
   const exportPDF = async () => {
-    const input = document.getElementById("pdfContent");
-    const canvas = await html2canvas(input, { scale: 2 });
+    const input = document.getElementById("pdfPage");
+    const canvas = await html2canvas(input, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      scrollY: 0,
+    });
+
     const img = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
-    const width = 210;
-    const height = (canvas.height * width) / canvas.width;
-    pdf.addImage(img, "PNG", 0, 0, width, height);
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 10;
+    const contentWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+    pdf.addImage(img, "PNG", margin, margin, contentWidth, imgHeight);
     const filename = projectName
       ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
       : "SIKU_Kalkulation.pdf";
@@ -139,50 +146,47 @@ export default function App() {
 
   return (
     <div className="container">
-      <div id="pdfContent">
-        <header>
-          <img src="/siku_logo.svg" alt="SIKU Logo" />
-          <h1>Infrarot-Heizplatten Kalkulator</h1>
+      <div id="pdfPage" className="pdf-wrapper">
+        <header className="pdf-header">
+          <div className="pdf-header-left">
+            <img src="/siku_logo.svg" alt="SIKU Logo" />
+          </div>
+          <div className="pdf-header-right">
+            <h1>Infrarot-Heizplatten Kalkulator</h1>
+            {projectName && <p><strong>Projekt:</strong> {projectName}</p>}
+            {projectAddress && <p><strong>Adresse:</strong> {projectAddress}</p>}
+            {projectEmail && <p><strong>E-Mail:</strong> {projectEmail}</p>}
+          </div>
         </header>
 
-        {/* ===== Projektinformationen ===== */}
+        <hr className="header-line" />
+
         <div className="project-form no-print">
           <label>Projektname</label>
           <input
             type="text"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
-            placeholder="z. B. Musterhaus Wien"
           />
-
           <label>Adresse</label>
           <input
             type="text"
             value={projectAddress}
             onChange={(e) => setProjectAddress(e.target.value)}
-            placeholder="z. B. Hauptstraße 12, 1010 Wien"
           />
-
           <label>E-Mail</label>
           <input
             type="email"
             value={projectEmail}
             onChange={(e) => setProjectEmail(e.target.value)}
-            placeholder="z. B. info@siku.at"
           />
         </div>
 
-        {(projectName || projectAddress || projectEmail) && (
-          <div className="project-info">
-            {projectName && <p><strong>Projekt:</strong> {projectName}</p>}
-            {projectAddress && <p><strong>Adresse:</strong> {projectAddress}</p>}
-            {projectEmail && <p><strong>E-Mail:</strong> {projectEmail}</p>}
-          </div>
-        )}
-
-        {/* ===== Räume ===== */}
         <div className="card">
           <h2>Räume</h2>
+          {rooms.length === 0 && (
+            <p className="placeholder">Noch kein Raum hinzugefügt.</p>
+          )}
           {rooms.map((room, i) => {
             const r = calculateRoom(room);
             return (
@@ -190,7 +194,9 @@ export default function App() {
                 <button
                   type="button"
                   className="delete-room-btn no-print"
-                  onClick={() => deleteRoom(i)}
+                  onClick={() =>
+                    setRooms(rooms.filter((_, index) => index !== i))
+                  }
                 >
                   ❌
                 </button>
@@ -308,9 +314,7 @@ export default function App() {
                   </p>
                   <pre>{r.text}</pre>
                   {r.warning && (
-                    <p style={{ color: "red", fontWeight: "bold" }}>
-                      {r.warning}
-                    </p>
+                    <p style={{ color: "red", fontWeight: "bold" }}>{r.warning}</p>
                   )}
                 </div>
               </div>

@@ -1,4 +1,3 @@
-/* ====== Basislayout ====== */
 body {
   font-family: Arial, sans-serif;
   background-color: #f4f6f8;
@@ -7,47 +6,50 @@ body {
   color: #222;
 }
 
+/* A4 PDF-Rahmen */
+.pdf-wrapper {
+  background: white;
+  padding: 20mm;
+  box-sizing: border-box;
+  min-height: 297mm;
+}
+
+/* Kopfbereich */
+.pdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pdf-header-left img {
+  height: 45px;
+  object-fit: contain;
+}
+
+.pdf-header-right {
+  text-align: right;
+  line-height: 1.4;
+}
+
+.pdf-header-right h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #004b8d;
+}
+
+.header-line {
+  border: none;
+  border-top: 2px solid #004b8d;
+  margin: 10px 0 20px 0;
+}
+
+/* Allgemeine Container */
 .container {
   max-width: 1100px;
   margin: 0 auto;
   padding: 20px;
 }
 
-/* ====== Header ====== */
-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-header img {
-  height: 55px;
-}
-
-header h1 {
-  font-size: 1.6rem;
-  color: #004b8d;
-  font-weight: bold;
-  margin: 0;
-}
-
-/* ====== Projektinformationen ====== */
-.project-info {
-  margin-bottom: 10px;
-  font-size: 0.9rem;
-  color: #333;
-}
-
-.project-info p {
-  margin: 2px 0;
-}
-
-.project-info strong {
-  color: #003366;
-}
-
-/* ====== Karten / Boxen ====== */
 .card {
   background: #fff;
   border-radius: 12px;
@@ -56,13 +58,7 @@ header h1 {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.card h2 {
-  margin-top: 0;
-  font-size: 1.3rem;
-  color: #003366;
-}
-
-/* ====== Eingabeelemente ====== */
+/* Eingabeelemente */
 label {
   font-weight: bold;
   display: block;
@@ -80,7 +76,7 @@ select {
   box-sizing: border-box;
 }
 
-/* ====== Raum-Layout ====== */
+/* Raumabschnitt */
 .room {
   display: flex;
   justify-content: space-between;
@@ -108,23 +104,9 @@ select {
   line-height: 1.4;
   font-family: "Courier New", monospace;
   font-size: 0.95rem;
-  max-width: 600px;
 }
 
-/* ====== Textgestaltung im Ergebnis ====== */
-.result strong {
-  color: #003366;
-  font-size: 1.1rem;
-}
-
-/* „Bedarf“ und Watt fett */
-.result p:first-of-type strong,
-.result p:first-of-type {
-  font-weight: 700;
-  color: #111;
-}
-
-/* ====== Buttons ====== */
+/* Buttons */
 .add-room-btn,
 .pdf-btn {
   margin-top: 10px;
@@ -144,19 +126,7 @@ select {
   background-color: #005fa3;
 }
 
-/* Löschen-Button */
-.delete-room-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: transparent;
-  border: none;
-  color: #d33;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-/* Warnhinweise */
+/* Warnung */
 .result p[style*="red"] {
   background: #ffeaea;
   border: 1px solid #ffcccc;
@@ -164,48 +134,25 @@ select {
   padding: 8px;
 }
 
-/* ====== Druckoptimierung ====== */
+/* Druckformat */
 @media print {
   @page {
     size: A4 portrait !important;
-    margin: 20mm !important;
+    margin: 0 !important;
   }
 
   html, body {
     width: 210mm;
     height: 297mm;
-    margin: 0 auto;
     background: white;
-    -webkit-print-color-adjust: exact;
   }
 
-  header,
   .no-print {
     display: none !important;
   }
 
-  .container {
-    padding: 0;
-    margin: 0 auto;
-  }
-
-  .card {
-    box-shadow: none;
-    border: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .result {
-    border: none;
-    background: white;
-    max-width: 100%;
-  }
-
-  .room {
-    background: white;
-    box-shadow: none;
-    border: none;
-    padding: 0;
+  .pdf-wrapper {
+    padding: 20mm !important;
+    box-shadow: none !important;
   }
 }
