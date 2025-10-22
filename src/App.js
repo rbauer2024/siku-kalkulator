@@ -388,7 +388,6 @@ export default function App() {
                 >
                   <option value="FT01">IPP-FT01 (digital)</option>
                   <option value="BT010">BT010 (einfach)</option>
-                  <option value="BT003">BT003 (Funk)</option>
                 </select>
 
                 <label>Empfänger (pro Platte)</label>
@@ -400,8 +399,8 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="R01">IPP-R01 (Unterputz)</option>
-                  <option value="R02">IPP-R02 (Aufputz)</option>
+                  <option value="R01">IPP-R01 (Unterputz-Funkempfänger)</option>
+                  <option value="BT003">BT003 (Aufputz-Funkempfänger)</option>
                 </select>
 
                 <label>Montageart</label>
