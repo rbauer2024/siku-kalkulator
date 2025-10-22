@@ -54,11 +54,16 @@ export default function App() {
     return 8;
   }
 
-  const getReceiver = (code) =>
-    code === "R02" ? "IPP-R02 (Aufputz)" : "IPP-R01 (Unterputz)";
+  // ------------------------------------------------------------
+  // Empfänger- und Thermostatnamen
+  // ------------------------------------------------------------
+  const getReceiver = (code) => {
+    if (code === "BT003") return "BT003 (Funkempfänger)";
+    return "IPP-R01 (Unterputz)";
+  };
+
   const getThermostat = (code) => {
     if (code === "BT010") return "BT010 (einfach)";
-    if (code === "BT003") return "BT003 (Funk)";
     return "IPP-FT01 (digital)";
   };
 
@@ -69,7 +74,6 @@ export default function App() {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
 
-    // Fenster-/Raum-Faktoren
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
     const name = room.name.toLowerCase();
     if (name.includes("bad") || name.includes("wc") || name.includes("dusche"))
@@ -90,7 +94,6 @@ export default function App() {
     const valid = combos.filter((c) => c.total >= need);
     if (!valid.length) return { need, text: "Keine passende Kombination" };
 
-    // zuerst möglichst wenig Platten, dann geringer Overhead
     valid.sort((a, b) =>
       a.count === b.count ? a.total - b.total : a.count - b.count
     );
@@ -136,7 +139,7 @@ export default function App() {
     ]);
 
   // ------------------------------------------------------------
-  // PDF-Export (stabil, mit Header pro Seite & sauberen Abständen)
+  // PDF-Export (sauber mit Header/Fuß)
   // ------------------------------------------------------------
   const exportPDF = () => {
     const pdf = new jsPDF("p", "mm", "a4");
@@ -145,21 +148,14 @@ export default function App() {
     const margin = 15;
     let yPos = margin;
 
-    // ----- Header-Funktion (wird auf jeder Seite aufgerufen) -----
     const drawHeader = () => {
-      // Logo (aus public)
       pdf.addImage("/siku_logo.png", "PNG", pageWidth / 2 - 22, yPos, 44, 15);
       yPos += 23;
-
-      // Titel
       pdf.setFontSize(16);
       pdf.setTextColor(37, 89, 161);
-      pdf.setFont("helvetica", "normal");
       pdf.text("Infrarot-Heizplatten Kalkulator", pageWidth / 2, yPos, {
         align: "center",
       });
-
-      // Projektdaten
       yPos += 10;
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
@@ -167,17 +163,10 @@ export default function App() {
       if (projectAddress) pdf.text(`Adresse: ${projectAddress}`, margin, yPos + 5);
       if (projectEmail) pdf.text(`E-Mail: ${projectEmail}`, margin, yPos + 10);
       yPos += 20;
-
-      // Linie
       pdf.setDrawColor(37, 89, 161);
       pdf.setLineWidth(0.4);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
       yPos += 8;
-
-      // Standardschrift
-      pdf.setFont("helvetica", "");
-      pdf.setFontSize(11);
-      pdf.setTextColor(0, 0, 0);
     };
 
     const drawFooter = () => {
@@ -189,24 +178,21 @@ export default function App() {
     };
 
     drawHeader();
+    pdf.setFont("helvetica", "");
+    pdf.setFontSize(11);
 
-    // ----- Inhalt (Räume) -----
     rooms.forEach((room, index) => {
       const r = calculateRoom(room);
-
-      // Blockhöhe im Voraus berechnen (für Seitenumbruch)
-      const blockText = [
-        room.name,
+      const lines = [
+        `${room.name}`,
         `Bedarf: ${r.need} W`,
         "",
         r.text,
-        r.warning ? `\n${r.warning}` : "",
-      ].join("\n");
+        r.warning ? r.warning : "",
+      ];
+      const block = pdf.splitTextToSize(lines.join("\n"), pageWidth - 2 * margin);
+      const blockHeight = block.length * 5 + 8;
 
-      const split = pdf.splitTextToSize(blockText, pageWidth - 2 * margin);
-      const blockHeight = split.length * 5 + 12; // heuristisch (Zeilenhöhe ~5mm)
-
-      // Falls nicht genug Platz: Seite beenden & neu starten
       if (yPos + blockHeight > pageHeight - margin) {
         drawFooter();
         pdf.addPage();
@@ -214,46 +200,33 @@ export default function App() {
         drawHeader();
       }
 
-      // Raumname
       pdf.setFontSize(12);
       pdf.setTextColor(37, 89, 161);
-      pdf.setFont("helvetica", "bold");
       pdf.text(room.name, margin, yPos);
       yPos += 6;
 
-      // Bedarf
       pdf.setFontSize(11);
       pdf.setTextColor(0, 0, 0);
-      pdf.setFont("helvetica", "bold");
       pdf.text(`Bedarf: ${r.need} W`, margin, yPos);
       yPos += 6;
 
-      // Vorschläge-Text
-      pdf.setFont("helvetica", "");
       pdf.setFontSize(10);
-      const vLines = pdf.splitTextToSize(r.text, pageWidth - 2 * margin);
-      pdf.text(vLines, margin, yPos);
-      yPos += vLines.length * 5;
-
-      // Warnung (falls vorhanden)
+      pdf.text(r.text, margin, yPos);
       if (r.warning) {
-        yPos += 3;
+        yPos += 10;
         pdf.setTextColor(200, 0, 0);
         pdf.text(r.warning, margin, yPos);
         pdf.setTextColor(0, 0, 0);
       }
 
-      // Abstand & Trennung zum nächsten Raum
-      yPos += 12;
+      yPos += 15;
       if (index < rooms.length - 1) {
         pdf.setDrawColor(37, 89, 161);
         pdf.setLineWidth(0.2);
-        pdf.line(margin, yPos, pageWidth - margin, yPos);
-        yPos += 8;
+        pdf.line(margin, yPos - 3, pageWidth - margin, yPos - 3);
       }
     });
 
-    // Footer auf der letzten Seite
     drawFooter();
 
     const filename = projectName
@@ -296,7 +269,6 @@ export default function App() {
 
       <div className="card">
         <h2>Räume</h2>
-
         {rooms.length === 0 && <p>🔹 Noch keine Räume hinzugefügt.</p>}
 
         {rooms.map((room, index) => {
@@ -377,6 +349,7 @@ export default function App() {
                   <option value="hoch">Hoch</option>
                 </select>
 
+                {/* ✅ Nur gültige Thermostate */}
                 <label>Thermostat (pro Raum)</label>
                 <select
                   value={room.thermostat}
@@ -388,9 +361,9 @@ export default function App() {
                 >
                   <option value="FT01">IPP-FT01 (digital)</option>
                   <option value="BT010">BT010 (einfach)</option>
-                  <option value="BT003">BT003 (Funk)</option>
                 </select>
 
+                {/* ✅ Richtige Empfänger */}
                 <label>Empfänger (pro Platte)</label>
                 <select
                   value={room.receiver}
@@ -401,7 +374,7 @@ export default function App() {
                   }}
                 >
                   <option value="R01">IPP-R01 (Unterputz)</option>
-                  <option value="R02">IPP-R02 (Aufputz)</option>
+                  <option value="BT003">BT003 (Funkempfänger)</option>
                 </select>
 
                 <label>Montageart</label>
@@ -426,9 +399,7 @@ export default function App() {
                 </p>
                 <pre>{r.text}</pre>
                 {r.warning && (
-                  <p style={{ color: "red", fontWeight: "bold" }}>
-                    {r.warning}
-                  </p>
+                  <p style={{ color: "red", fontWeight: "bold" }}>{r.warning}</p>
                 )}
               </div>
             </div>
