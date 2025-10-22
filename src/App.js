@@ -373,8 +373,8 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="R01">IPP-R01 (Unterputz)</option>
-                  <option value="BT003">BT003 (Funkempfänger)</option>
+                  <option value="R01">IPP-R01 (Unterputz-FunkEmpfänger)</option>
+                  <option value="BT003">BT003 (Aufputz-Funkempfänger)</option>
                 </select>
 
                 <label>Montageart</label>
