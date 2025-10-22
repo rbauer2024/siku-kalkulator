@@ -155,7 +155,7 @@ export default function App() {
       pdf.setFontSize(16);
       pdf.setTextColor(37, 89, 161);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Infrarot-Heizplatten Kalkulator", pageWidth / 2, yPos, {
+      pdf.text("Infrarot-Heizplatten Empfehlungs-Kalkulator", pageWidth / 2, yPos, {
         align: "center",
       });
 
@@ -258,7 +258,7 @@ export default function App() {
 
     const filename = projectName
       ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
-      : "SIKU_Kalkulation.pdf";
+      : "SIKU_Empfehlungs_Kalkulation.pdf";
     pdf.save(filename);
   };
 
