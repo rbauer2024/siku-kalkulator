@@ -68,12 +68,15 @@ export default function App() {
   function calculateRoom(room) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
+
+    // Fenster-/Raum-Faktoren
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
     const name = room.name.toLowerCase();
     if (name.includes("bad") || name.includes("wc") || name.includes("dusche"))
       windowFactor *= 1.15;
 
     const need = Math.round(volume * factor * windowFactor);
+
     const models = plateOptions[room.mounting] || [];
     if (!models.length) return { need, text: "Keine Modelle verfügbar" };
 
@@ -87,6 +90,7 @@ export default function App() {
     const valid = combos.filter((c) => c.total >= need);
     if (!valid.length) return { need, text: "Keine passende Kombination" };
 
+    // zuerst möglichst wenig Platten, dann geringer Overhead
     valid.sort((a, b) =>
       a.count === b.count ? a.total - b.total : a.count - b.count
     );
@@ -132,7 +136,7 @@ export default function App() {
     ]);
 
   // ------------------------------------------------------------
-  // PDF-Export
+  // PDF-Export (stabil, mit Header pro Seite & sauberen Abständen)
   // ------------------------------------------------------------
   const exportPDF = () => {
     const pdf = new jsPDF("p", "mm", "a4");
@@ -141,17 +145,21 @@ export default function App() {
     const margin = 15;
     let yPos = margin;
 
-    // ---- Header ------------------------------------------------
-    const header = () => {
+    // ----- Header-Funktion (wird auf jeder Seite aufgerufen) -----
+    const drawHeader = () => {
+      // Logo (aus public)
       pdf.addImage("/siku_logo.png", "PNG", pageWidth / 2 - 22, yPos, 44, 15);
       yPos += 23;
 
+      // Titel
       pdf.setFontSize(16);
       pdf.setTextColor(37, 89, 161);
+      pdf.setFont("helvetica", "normal");
       pdf.text("Infrarot-Heizplatten Kalkulator", pageWidth / 2, yPos, {
         align: "center",
       });
 
+      // Projektdaten
       yPos += 10;
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
@@ -160,78 +168,93 @@ export default function App() {
       if (projectEmail) pdf.text(`E-Mail: ${projectEmail}`, margin, yPos + 10);
       yPos += 20;
 
+      // Linie
       pdf.setDrawColor(37, 89, 161);
       pdf.setLineWidth(0.4);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
       yPos += 8;
+
+      // Standardschrift
+      pdf.setFont("helvetica", "");
+      pdf.setFontSize(11);
+      pdf.setTextColor(0, 0, 0);
     };
 
-    header();
+    const drawFooter = () => {
+      const pageNumber = pdf.internal.getNumberOfPages();
+      pdf.setFontSize(9);
+      pdf.text(`Seite ${pageNumber}`, pageWidth / 2, pageHeight - 6, {
+        align: "center",
+      });
+    };
 
-    // ---- Inhalt ------------------------------------------------
-    pdf.setFont("Helvetica", "");
-    pdf.setFontSize(11);
+    drawHeader();
 
+    // ----- Inhalt (Räume) -----
     rooms.forEach((room, index) => {
       const r = calculateRoom(room);
-      const lines = [
-        `${room.name}`,
+
+      // Blockhöhe im Voraus berechnen (für Seitenumbruch)
+      const blockText = [
+        room.name,
         `Bedarf: ${r.need} W`,
         "",
         r.text,
-        r.warning ? r.warning : "",
-      ];
-      const block = pdf.splitTextToSize(lines.join("\n"), pageWidth - 2 * margin);
-      const blockHeight = block.length * 5 + 8;
+        r.warning ? `\n${r.warning}` : "",
+      ].join("\n");
 
+      const split = pdf.splitTextToSize(blockText, pageWidth - 2 * margin);
+      const blockHeight = split.length * 5 + 12; // heuristisch (Zeilenhöhe ~5mm)
+
+      // Falls nicht genug Platz: Seite beenden & neu starten
       if (yPos + blockHeight > pageHeight - margin) {
-        pdf.text(
-          `Seite ${pdf.internal.getNumberOfPages()}`,
-          pageWidth / 2,
-          pageHeight - 5,
-          { align: "center" }
-        );
+        drawFooter();
         pdf.addPage();
         yPos = margin;
-        header();
+        drawHeader();
       }
 
+      // Raumname
       pdf.setFontSize(12);
       pdf.setTextColor(37, 89, 161);
+      pdf.setFont("helvetica", "bold");
       pdf.text(room.name, margin, yPos);
       yPos += 6;
 
+      // Bedarf
       pdf.setFontSize(11);
       pdf.setTextColor(0, 0, 0);
+      pdf.setFont("helvetica", "bold");
       pdf.text(`Bedarf: ${r.need} W`, margin, yPos);
       yPos += 6;
 
+      // Vorschläge-Text
+      pdf.setFont("helvetica", "");
       pdf.setFontSize(10);
-      pdf.text(r.text, margin, yPos);
+      const vLines = pdf.splitTextToSize(r.text, pageWidth - 2 * margin);
+      pdf.text(vLines, margin, yPos);
+      yPos += vLines.length * 5;
+
+      // Warnung (falls vorhanden)
       if (r.warning) {
-        yPos += 10;
+        yPos += 3;
         pdf.setTextColor(200, 0, 0);
         pdf.text(r.warning, margin, yPos);
         pdf.setTextColor(0, 0, 0);
       }
 
-      yPos += 15;
-
-      // ---- Dezente SIKU-blaue Trennlinie ----
+      // Abstand & Trennung zum nächsten Raum
+      yPos += 12;
       if (index < rooms.length - 1) {
         pdf.setDrawColor(37, 89, 161);
         pdf.setLineWidth(0.2);
-        pdf.line(margin, yPos - 3, pageWidth - margin, yPos - 3);
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
       }
     });
 
-    // Seitenfuß
-    pdf.text(
-      `Seite ${pdf.internal.getNumberOfPages()}`,
-      pageWidth / 2,
-      pageHeight - 5,
-      { align: "center" }
-    );
+    // Footer auf der letzten Seite
+    drawFooter();
 
     const filename = projectName
       ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
@@ -308,7 +331,7 @@ export default function App() {
                   value={room.area}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].area = parseFloat(e.target.value);
+                    n[index].area = parseFloat(e.target.value || 0);
                     setRooms(n);
                   }}
                 />
@@ -320,7 +343,7 @@ export default function App() {
                   value={room.height}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].height = parseFloat(e.target.value);
+                    n[index].height = parseFloat(e.target.value || 0);
                     setRooms(n);
                   }}
                 />
