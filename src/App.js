@@ -269,7 +269,7 @@ export default function App() {
     <div className="container">
       <header>
         <img src="/siku_logo.png" alt="SIKU Logo" />
-        <h1>Infrarot-Heizplatten Kalkulator</h1>
+        <h1>Infrarot-Heizplatten Empfehlungs-Kalkulator</h1>
       </header>
 
       <div className="card no-print">
