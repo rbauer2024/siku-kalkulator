@@ -55,11 +55,11 @@ export default function App() {
   }
 
   const getReceiver = (code) =>
-    code === "R02" ? "IPP-R02 (Aufputz)" : "IPP-R01 (Unterputz)";
+    code === "R02" ? "IPP-R02 (Aufputz)" : "50648 - IPP-R01 (Unterputz)";
   const getThermostat = (code) => {
-    if (code === "BT010") return "BT010 (einfach)";
-    if (code === "BT003") return "BT003 (Funk)";
-    return "IPP-FT01 (digital)";
+    if (code === "BT010") return "50435 - BT010 (einfach)";
+    if (code === "BT003") return "50437 - BT003 (Funk)";
+    return "50815 - IPP-FT01 (digital)";
   };
 
   // ------------------------------------------------------------
