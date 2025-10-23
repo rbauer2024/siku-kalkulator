@@ -20,24 +20,24 @@ export default function App() {
 
   const plateOptions = {
     WW: [
-      { name: "SIKU IPP 160 WW", power: 160 },
-      { name: "SIKU IPP 330 WW", power: 330 },
-      { name: "SIKU IPP 350 WW", power: 350 },
-      { name: "SIKU IPP 580 WW", power: 580 },
-      { name: "SIKU IPP 700 WW", power: 700 },
-      { name: "SIKU IPP 900 WW", power: 900 },
+      { name: "50448 - SIKU IPP 160 WW", power: 160 },
+      { name: "50477 - SIKU IPP 330 WW", power: 330 },
+      { name: "50423 - SIKU IPP 350 WW", power: 350 },
+      { name: "50427 - SIKU IPP 580 WW", power: 580 },
+      { name: "50429 - SIKU IPP 700 WW", power: 700 },
+      { name: "50425 - SIKU IPP 900 WW", power: 900 },
     ],
     DW: [
-      { name: "SIKU IPP 280 DW", power: 280 },
-      { name: "SIKU IPP 450 DW", power: 450 },
-      { name: "SIKU IPP 550 DW", power: 550 },
-      { name: "SIKU IPP 700 DW", power: 700 },
+      { name: "50424 - SIKU IPP 280 DW", power: 280 },
+      { name: "50428 - SIKU IPP 450 DW", power: 450 },
+      { name: "50430 - SIKU IPP 550 DW", power: 550 },
+      { name: "50426 - SIKU IPP 700 DW", power: 700 },
     ],
     DC: [
-      { name: "SIKU IPP 450 DC", power: 450 },
-      { name: "SIKU IPP 700 DC", power: 700 },
-      { name: "SIKU IPP 900 DC", power: 900 },
-      { name: "SIKU IPP 1400 DC", power: 1400 },
+      { name: "50792 - SIKU IPP 450 DC", power: 450 },
+      { name: "50793 - SIKU IPP 700 DC", power: 700 },
+      { name: "50794 - SIKU IPP 900 DC", power: 900 },
+      { name: "50795 - SIKU IPP 1400 DC", power: 1400 },
     ],
   };
 
@@ -386,8 +386,8 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="FT01">IPP-FT01 (digital)</option>
-                  <option value="BT010">BT010 (einfach)</option>
+                  <option value="FT01">50815 - IPP-FT01 (digital)</option>
+                  <option value="BT010">50435 - BT010 (einfach)</option>
                 </select>
 
                 <label>Empfänger (pro Platte)</label>
@@ -399,8 +399,8 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="R01">IPP-R01 (Unterputz-Funkempfänger)</option>
-                  <option value="BT003">BT003 (Aufputz-Funkempfänger)</option>
+                  <option value="R01">50648 - IPP-R01 (Unterputz-Funkempfänger)</option>
+                  <option value="BT003">50437 - BT003 (Aufputz-Funkempfänger)</option>
                 </select>
 
                 <label>Montageart</label>
