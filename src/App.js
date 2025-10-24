@@ -55,10 +55,12 @@ export default function App() {
   }
 
   const getReceiver = (code) =>
-    code === "R02" ? "IPP-R02 (Aufputz)" : "50648 - IPP-R01 (Unterputz)";
+    code === "BT003"
+      ? "50437 - BT003 (Aufputz-Funkempfänger)"
+      : "50648 - IPP-R01 (Unterputz-Funkempfänger)";
+
   const getThermostat = (code) => {
     if (code === "BT010") return "50435 - BT010 (einfach)";
-    if (code === "BT003") return "50437 - BT003 (Funk)";
     return "50815 - IPP-FT01 (digital)";
   };
 
@@ -76,7 +78,6 @@ export default function App() {
       windowFactor *= 1.15;
 
     const need = Math.round(volume * factor * windowFactor);
-
     const models = plateOptions[room.mounting] || [];
     if (!models.length) return { need, text: "Keine Modelle verfügbar" };
 
@@ -104,15 +105,31 @@ export default function App() {
         ? `⚠️ Achtung: Maximal ${max} Platten empfohlen, benötigt wären ${s1.count}.`
         : "";
 
+    // ---- Zusatz: Deckenabhängeset bei DW hinzufügen ----
+    const extraAccessory =
+      room.mounting === "DW"
+        ? `, ${s1.count} × 50432 - IPP-DAS Deckenabhängeset`
+        : "";
+
     const txt = [
       `Vorschlag 1: ${s1.count} × ${s1.model.name} (${s1.model.power} W)
--> ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`,
+-> ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(
+        room.thermostat
+      )}${extraAccessory}`,
     ];
-    if (s2)
+
+    if (s2) {
+      const extraAccessory2 =
+        room.mounting === "DW"
+          ? `, ${s2.count} × 50432 - IPP-DAS Deckenabhängeset`
+          : "";
       txt.push(
         `\nVorschlag 2: ${s2.count} × ${s2.model.name} (${s2.model.power} W)
--> ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}`
+-> ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(
+          room.thermostat
+        )}${extraAccessory2}`
       );
+    }
 
     return { need, text: txt.join("\n"), warning: warn };
   }
@@ -145,21 +162,20 @@ export default function App() {
     const margin = 15;
     let yPos = margin;
 
-    // ----- Header-Funktion (wird auf jeder Seite aufgerufen) -----
     const drawHeader = () => {
-      // Logo (aus public)
       pdf.addImage("/siku_logo.png", "PNG", pageWidth / 2 - 22, yPos, 44, 15);
       yPos += 23;
 
-      // Titel
       pdf.setFontSize(16);
       pdf.setTextColor(37, 89, 161);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Infrarot-Heizplatten Empfehlungs-Kalkulator", pageWidth / 2, yPos, {
-        align: "center",
-      });
+      pdf.text(
+        "Infrarot-Heizplatten Empfehlungs-Kalkulator",
+        pageWidth / 2,
+        yPos,
+        { align: "center" }
+      );
 
-      // Projektdaten
       yPos += 10;
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
@@ -168,13 +184,11 @@ export default function App() {
       if (projectEmail) pdf.text(`E-Mail: ${projectEmail}`, margin, yPos + 10);
       yPos += 20;
 
-      // Linie
       pdf.setDrawColor(37, 89, 161);
       pdf.setLineWidth(0.4);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
       yPos += 8;
 
-      // Standardschrift
       pdf.setFont("helvetica", "");
       pdf.setFontSize(11);
       pdf.setTextColor(0, 0, 0);
@@ -190,11 +204,8 @@ export default function App() {
 
     drawHeader();
 
-    // ----- Inhalt (Räume) -----
     rooms.forEach((room, index) => {
       const r = calculateRoom(room);
-
-      // Blockhöhe im Voraus berechnen (für Seitenumbruch)
       const blockText = [
         room.name,
         `Bedarf: ${r.need} W`,
@@ -204,9 +215,8 @@ export default function App() {
       ].join("\n");
 
       const split = pdf.splitTextToSize(blockText, pageWidth - 2 * margin);
-      const blockHeight = split.length * 5 + 12; // heuristisch (Zeilenhöhe ~5mm)
+      const blockHeight = split.length * 5 + 12;
 
-      // Falls nicht genug Platz: Seite beenden & neu starten
       if (yPos + blockHeight > pageHeight - margin) {
         drawFooter();
         pdf.addPage();
@@ -214,28 +224,24 @@ export default function App() {
         drawHeader();
       }
 
-      // Raumname
       pdf.setFontSize(12);
       pdf.setTextColor(37, 89, 161);
       pdf.setFont("helvetica", "bold");
       pdf.text(room.name, margin, yPos);
       yPos += 6;
 
-      // Bedarf
       pdf.setFontSize(11);
       pdf.setTextColor(0, 0, 0);
       pdf.setFont("helvetica", "bold");
       pdf.text(`Bedarf: ${r.need} W`, margin, yPos);
       yPos += 6;
 
-      // Vorschläge-Text
       pdf.setFont("helvetica", "");
       pdf.setFontSize(10);
       const vLines = pdf.splitTextToSize(r.text, pageWidth - 2 * margin);
       pdf.text(vLines, margin, yPos);
       yPos += vLines.length * 5;
 
-      // Warnung (falls vorhanden)
       if (r.warning) {
         yPos += 3;
         pdf.setTextColor(200, 0, 0);
@@ -243,7 +249,6 @@ export default function App() {
         pdf.setTextColor(0, 0, 0);
       }
 
-      // Abstand & Trennung zum nächsten Raum
       yPos += 12;
       if (index < rooms.length - 1) {
         pdf.setDrawColor(37, 89, 161);
@@ -253,7 +258,6 @@ export default function App() {
       }
     });
 
-    // Footer auf der letzten Seite
     drawFooter();
 
     const filename = projectName
@@ -399,8 +403,12 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="R01">50648 - IPP-R01 (Unterputz-Funkempfänger)</option>
-                  <option value="BT003">50437 - BT003 (Aufputz-Funkempfänger)</option>
+                  <option value="R01">
+                    50648 - IPP-R01 (Unterputz-Funkempfänger)
+                  </option>
+                  <option value="BT003">
+                    50437 - BT003 (Aufputz-Funkempfänger)
+                  </option>
                 </select>
 
                 <label>Montageart</label>
@@ -425,9 +433,7 @@ export default function App() {
                 </p>
                 <pre>{r.text}</pre>
                 {r.warning && (
-                  <p style={{ color: "red", fontWeight: "bold" }}>
-                    {r.warning}
-                  </p>
+                  <p style={{ color: "red", fontWeight: "bold" }}>{r.warning}</p>
                 )}
               </div>
             </div>
