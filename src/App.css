@@ -20,8 +20,15 @@ body {
 header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 15px;
   margin-bottom: 30px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 header img {
@@ -34,6 +41,29 @@ header h1 {
   font-size: 1.9rem;
   margin: 0;
   font-weight: 700;
+}
+
+/* Sprachumschalter */
+.lang-switch {
+  display: flex;
+  gap: 8px;
+}
+
+.lang-btn {
+  background: transparent;
+  border: none;
+  color: #2559a1;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.lang-btn.active {
+  text-decoration: underline;
+}
+
+.lang-btn:hover {
+  opacity: 0.7;
 }
 
 /* -------------------------------------------------
