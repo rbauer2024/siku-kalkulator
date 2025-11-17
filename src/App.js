@@ -2,258 +2,264 @@ import React, { useState } from "react";
 import jsPDF from "jspdf";
 import "./App.css";
 
+/* ============================================================
+   SPRACHEN & ÜBERSETZUNGEN
+============================================================ */
+const LANGS = [
+  { code: "de", label: "DE" },
+  { code: "en", label: "EN" },
+  { code: "da", label: "DA" },
+  { code: "hr", label: "HR" },
+  { code: "sl", label: "SL" },
+];
+
+const translations = {
+  de: {
+    appTitle: "Infrarot-Heizplatten Empfehlungs-Kalkulator",
+    projectData: "Projekt-Daten",
+    roomsTitle: "Räume",
+    projectNamePlaceholder: "Projektname / Kunde",
+    addressPlaceholder: "Adresse",
+    emailPlaceholder: "E-Mail",
+    noRooms: "🔹 Noch keine Räume hinzugefügt.",
+    roomName: "Raumname",
+    area: "Fläche (m²)",
+    height: "Deckenhöhe (m)",
+    insulation: "Dämmstandard",
+
+    insulation_20: "Sehr gut (20 W/m³)",
+    insulation_25: "Gut (25 W/m³)",
+    insulation_30: "Durchschnittlich (30 W/m³)",
+    insulation_35: "Altbau (35 W/m³)",
+
+    windowShare: "Fensteranteil",
+    windowNormal: "Normal",
+    windowHigh: "Hoch",
+    thermostat: "Thermostat (pro Raum)",
+    receiverLabel: "Empfänger (pro Platte)",
+    mounting: "Montageart",
+    mountWW: "Wand (WW)",
+    mountDW: "Decke abgehängt (DW)",
+    mountDC: "Decke direkt (DC)",
+    addRoomBtn: "+ Raum hinzufügen",
+    pdfBtn: "📄 PDF erstellen",
+    demandLabel: "Bedarf",
+    projectLabel: "Projekt:",
+    addressLabel: "Adresse:",
+    emailLabel: "E-Mail:",
+    pageLabel: "Seite",
+    suggestion1: "Vorschlag 1",
+    suggestion2: "Vorschlag 2",
+  },
+
+  /* ============================================================
+     ENGLISH
+  ============================================================ */
+  en: {
+    appTitle: "Infrared Panel Recommendation Calculator",
+    projectData: "Project data",
+    roomsTitle: "Rooms",
+    projectNamePlaceholder: "Project / customer",
+    addressPlaceholder: "Address",
+    emailPlaceholder: "E-mail",
+    noRooms: "🔹 No rooms added yet.",
+    roomName: "Room name",
+    area: "Area (m²)",
+    height: "Ceiling height (m)",
+    insulation: "Insulation level",
+
+    insulation_20: "Very good (20 W/m³)",
+    insulation_25: "Good (25 W/m³)",
+    insulation_30: "Average (30 W/m³)",
+    insulation_35: "Old building (35 W/m³)",
+
+    windowShare: "Window share",
+    windowNormal: "Normal",
+    windowHigh: "High",
+    thermostat: "Thermostat (per room)",
+    receiverLabel: "Receiver (per panel)",
+    mounting: "Mounting type",
+    mountWW: "Wall (WW)",
+    mountDW: "Suspended ceiling (DW)",
+    mountDC: "Direct ceiling (DC)",
+    addRoomBtn: "+ Add room",
+    pdfBtn: "📄 Create PDF",
+    demandLabel: "Demand",
+    projectLabel: "Project:",
+    addressLabel: "Address:",
+    emailLabel: "E-mail:",
+    pageLabel: "Page",
+    suggestion1: "Option 1",
+    suggestion2: "Option 2",
+  },
+
+  /* ============================================================
+     DÄNISCH
+  ============================================================ */
+  da: {
+    appTitle: "Infrarød panel beregningsværktøj",
+    projectData: "Projektdata",
+    roomsTitle: "Rum",
+    projectNamePlaceholder: "Projekt / kunde",
+    addressPlaceholder: "Adresse",
+    emailPlaceholder: "E-mail",
+    noRooms: "🔹 Ingen rum tilføjet endnu.",
+    roomName: "Rumnavn",
+    area: "Areal (m²)",
+    height: "Loftshøjde (m)",
+    insulation: "Isoleringsniveau",
+
+    insulation_20: "Meget godt (20 W/m³)",
+    insulation_25: "Godt (25 W/m³)",
+    insulation_30: "Gennemsnitlig (30 W/m³)",
+    insulation_35: "Ældre byggeri (35 W/m³)",
+
+    windowShare: "Vinduesandel",
+    windowNormal: "Normal",
+    windowHigh: "Stor",
+    thermostat: "Termostat (pr. rum)",
+    receiverLabel: "Modtager (pr. panel)",
+    mounting: "Monteringstype",
+    mountWW: "Væg (WW)",
+    mountDW: "Nedsænket loft (DW)",
+    mountDC: "Direkte i loft (DC)",
+    addRoomBtn: "+ Tilføj rum",
+    pdfBtn: "📄 Opret PDF",
+    demandLabel: "Varmebehov",
+    projectLabel: "Projekt:",
+    addressLabel: "Adresse:",
+    emailLabel: "E-mail:",
+    pageLabel: "Side",
+    suggestion1: "Forslag 1",
+    suggestion2: "Forslag 2",
+  },
+
+  /* ============================================================
+     KROATISCH
+  ============================================================ */
+  hr: {
+    appTitle: "Kalkulator preporuke infracrvenih panela",
+    projectData: "Podaci o projektu",
+    roomsTitle: "Prostorije",
+    projectNamePlaceholder: "Projekt / kupac",
+    addressPlaceholder: "Adresa",
+    emailPlaceholder: "E-mail",
+    noRooms: "🔹 Još nema dodanih prostorija.",
+    roomName: "Naziv prostorije",
+    area: "Površina (m²)",
+    height: "Visina stropa (m)",
+    insulation: "Razina izolacije",
+
+    insulation_20: "Vrlo dobro (20 W/m³)",
+    insulation_25: "Dobro (25 W/m³)",
+    insulation_30: "Prosječno (30 W/m³)",
+    insulation_35: "Stara gradnja (35 W/m³)",
+
+    windowShare: "Udio prozora",
+    windowNormal: "Normalan",
+    windowHigh: "Velik",
+    thermostat: "Termostat (po prostoriji)",
+    receiverLabel: "Prijamnik (po panelu)",
+    mounting: "Način montaže",
+    mountWW: "Zid (WW)",
+    mountDW: "Spušteni strop (DW)",
+    mountDC: "Direktno na strop (DC)",
+    addRoomBtn: "+ Dodaj prostoriju",
+    pdfBtn: "📄 Izradi PDF",
+    demandLabel: "Potrebna snaga",
+    projectLabel: "Projekt:",
+    addressLabel: "Adresa:",
+    emailLabel: "E-mail:",
+    pageLabel: "Stranica",
+    suggestion1: "Prijedlog 1",
+    suggestion2: "Prijedlog 2",
+  },
+
+  /* ============================================================
+     SLOWENISCH
+  ============================================================ */
+  sl: {
+    appTitle: "Kalkulator priporočil za infrardeče plošče",
+    projectData: "Podatki o projektu",
+    roomsTitle: "Prostori",
+    projectNamePlaceholder: "Projekt / stranka",
+    addressPlaceholder: "Naslov",
+    emailPlaceholder: "E-pošta",
+    noRooms: "🔹 Še ni dodanih prostorov.",
+    roomName: "Ime prostora",
+    area: "Površina (m²)",
+    height: "Višina stropa (m)",
+    insulation: "Stopnja izolacije",
+
+    insulation_20: "Zelo dobro (20 W/m³)",
+    insulation_25: "Dobro (25 W/m³)",
+    insulation_30: "Povprečno (30 W/m³)",
+    insulation_35: "Stara gradnja (35 W/m³)",
+
+    windowShare: "Delež oken",
+    windowNormal: "Običajen",
+    windowHigh: "Velik",
+    thermostat: "Termostat (na prostor)",
+    receiverLabel: "Sprejemnik (na ploščo)",
+    mounting: "Način montaže",
+    mountWW: "Stena (WW)",
+    mountDW: "Spuščen strop (DW)",
+    mountDC: "Neposredno na strop (DC)",
+    addRoomBtn: "+ Dodaj prostor",
+    pdfBtn: "📄 Ustvari PDF",
+    demandLabel: "Potrebna moč",
+    projectLabel: "Projekt:",
+    addressLabel: "Naslov:",
+    emailLabel: "E-pošta:",
+    pageLabel: "Stran",
+    suggestion1: "Predlog 1",
+    suggestion2: "Predlog 2",
+  },
+};
+
+/* WARNUNGEN MEHRSPRACHIG */
+function getWarningText(lang, max, count) {
+  switch (lang) {
+    case "en":
+      return `⚠️ Attention: Maximum ${max} panels recommended, but ${count} required.`;
+    case "da":
+      return `⚠️ Bemærk: Maksimalt ${max} paneler anbefales, beregningen kræver ${count}.`;
+    case "hr":
+      return `⚠️ Pažnja: Preporuča se najviše ${max} panela, potrebno ${count}.`;
+    case "sl":
+      return `⚠️ Pozor: Priporočeno največ ${max} plošč, potrebno ${count}.`;
+    case "de":
+    default:
+      return `⚠️ Achtung: Maximal ${max} Platten empfohlen, benötigt wären ${count}.`;
+  }
+}
+
+/* ============================================================
+   HAUPTKOMPONENTE
+============================================================ */
 export default function App() {
-  // ------------------------------------------------------------
-  // Sprache
-  // ------------------------------------------------------------
   const [lang, setLang] = useState("de");
+  const [projectName, setProjectName] = useState("");
+  const [projectAddress, setProjectAddress] = useState("");
+  const [projectEmail, setProjectEmail] = useState("");
+  const [rooms, setRooms] = useState([]);
 
-  const translations = {
-    de: {
-      appTitle: "Infrarot-Heizplatten Empfehlungs-Kalkulator",
-      projectData: "Projekt-Daten",
-      project: "Projekt",
-      address: "Adresse",
-      email: "E-Mail",
+  const t = (key) =>
+    translations[lang][key] ?? translations.de[key] ?? key;
 
-      rooms: "Räume",
-      noRooms: "🔹 Noch keine Räume hinzugefügt.",
-      addRoom: "+ Raum hinzufügen",
-      pdf: "📄 PDF erstellen",
-
-      roomName: "Raumname",
-      area: "Fläche (m²)",
-      height: "Deckenhöhe (m)",
-      insulation: "Dämmstandard",
-      windows: "Fensteranteil",
-      thermostat: "Thermostat (pro Raum)",
-      receiver: "Empfänger (pro Platte)",
-      mounting: "Montageart",
-
-      windowNormal: "Normal",
-      windowHigh: "Hoch",
-
-      // Dämmstandard
-      insulVeryGood: "Sehr gut (20 W/m³)",
-      insulGood: "Gut (25 W/m³)",
-      insulAvg: "Durchschnittlich (30 W/m³)",
-      insulOld: "Altbau (35 W/m³)",
-
-      // Thermostate
-      thFT01: "50815 - IPP-FT01 (digital)",
-      thBT010: "50435 - BT010 (einfach)",
-
-      // Empfänger
-      recvUP: "Unterputz-Funkempfänger",
-      recvAP: "Aufputz-Funkempfänger",
-
-      // Montage
-      mountWW: "Wand (WW)",
-      mountDW: "Decke abgehängt (DW)",
-      mountDC: "Decke direkt (DC)",
-
-      demand: "Bedarf",
-      option: "Vorschlag",
-      warningMax: "⚠️ Achtung: Maximal",
-      page: "Seite",
-    },
-
-    en: {
-      appTitle: "Infrared Panel Recommendation Calculator",
-      projectData: "Project data",
-      project: "Project",
-      address: "Address",
-      email: "Email",
-
-      rooms: "Rooms",
-      noRooms: "🔹 No rooms added yet.",
-      addRoom: "+ Add room",
-      pdf: "📄 Create PDF",
-
-      roomName: "Room name",
-      area: "Area (m²)",
-      height: "Ceiling height (m)",
-      insulation: "Insulation level",
-      windows: "Window share",
-      thermostat: "Thermostat (per room)",
-      receiver: "Receiver (per panel)",
-      mounting: "Mounting type",
-
-      windowNormal: "Normal",
-      windowHigh: "High",
-
-      insulVeryGood: "Very good (20 W/m³)",
-      insulGood: "Good (25 W/m³)",
-      insulAvg: "Average (30 W/m³)",
-      insulOld: "Old building (35 W/m³)",
-
-      thFT01: "50815 - IPP-FT01 (digital)",
-      thBT010: "50435 - BT010 (simple)",
-
-      recvUP: "in-wall wireless receiver",
-      recvAP: "surface wireless receiver",
-
-      mountWW: "Wall (WW)",
-      mountDW: "Suspended ceiling (DW)",
-      mountDC: "Direct ceiling (DC)",
-
-      demand: "Demand",
-      option: "Option",
-      warningMax: "⚠️ Warning: Maximum",
-      page: "Page",
-    },
-
-    da: {
-      appTitle: "Infrarød Panel Anbefalingsberegner",
-      projectData: "Projektdata",
-      project: "Projekt",
-      address: "Adresse",
-      email: "E-mail",
-
-      rooms: "Rum",
-      noRooms: "🔹 Ingen rum tilføjet endnu.",
-      addRoom: "+ Tilføj rum",
-      pdf: "📄 Opret PDF",
-
-      roomName: "Rumnavn",
-      area: "Areal (m²)",
-      height: "Loftshøjde (m)",
-      insulation: "Isoleringsniveau",
-      windows: "Vinduesandel",
-      thermostat: "Termostat (pr. rum)",
-      receiver: "Modtager (pr. panel)",
-      mounting: "Monteringstype",
-
-      windowNormal: "Normal",
-      windowHigh: "Høj",
-
-      insulVeryGood: "Meget god (20 W/m³)",
-      insulGood: "God (25 W/m³)",
-      insulAvg: "Gennemsnitlig (30 W/m³)",
-      insulOld: "Gammel bygning (35 W/m³)",
-
-      thFT01: "50815 - IPP-FT01 (digital)",
-      thBT010: "50435 - BT010 (simpel)",
-
-      recvUP: "indbygget trådløs modtager",
-      recvAP: "påbygget trådløs modtager",
-
-      mountWW: "Væg (WW)",
-      mountDW: "Nedsænket loft (DW)",
-      mountDC: "Direkte loft (DC)",
-
-      demand: "Effektbehov",
-      option: "Forslag",
-      warningMax: "⚠️ Advarsel: Maksimalt",
-      page: "Side",
-    },
-
-    hr: {
-      appTitle: "Kalkulator preporuke infracrvenih ploča",
-      projectData: "Podaci o projektu",
-      project: "Projekt",
-      address: "Adresa",
-      email: "E-mail",
-
-      rooms: "Prostorije",
-      noRooms: "🔹 Još nema dodanih prostorija.",
-      addRoom: "+ Dodaj prostoriju",
-      pdf: "📄 Izradi PDF",
-
-      roomName: "Naziv prostorije",
-      area: "Površina (m²)",
-      height: "Visina stropa (m)",
-      insulation: "Razina izolacije",
-      windows: "Udio prozora",
-      thermostat: "Termostat (po prostoriji)",
-      receiver: "Prijamnik (po ploči)",
-      mounting: "Vrsta montaže",
-
-      windowNormal: "Normalno",
-      windowHigh: "Visoko",
-
-      insulVeryGood: "Vrlo dobro (20 W/m³)",
-      insulGood: "Dobro (25 W/m³)",
-      insulAvg: "Prosječno (30 W/m³)",
-      insulOld: "Stara gradnja (35 W/m³)",
-
-      thFT01: "50815 - IPP-FT01 (digitalni)",
-      thBT010: "50435 - BT010 (jednostavni)",
-
-      recvUP: "ugradbeni bežični prijamnik",
-      recvAP: "nadgradni bežični prijamnik",
-
-      mountWW: "Zid (WW)",
-      mountDW: "Spušteni strop (DW)",
-      mountDC: "Direktni strop (DC)",
-
-      demand: "Potreba",
-      option: "Prijedlog",
-      warningMax: "⚠️ Upozorenje: Maksimalno",
-      page: "Stranica",
-    },
-
-    sl: {
-      appTitle: "Kalkulator priporočil za infrardeče plošče",
-      projectData: "Podatki o projektu",
-      project: "Projekt",
-      address: "Naslov",
-      email: "E-pošta",
-
-      rooms: "Prostori",
-      noRooms: "🔹 Ni dodanih prostorov.",
-      addRoom: "+ Dodaj prostor",
-      pdf: "📄 Ustvari PDF",
-
-      roomName: "Ime prostora",
-      area: "Površina (m²)",
-      height: "Višina stropa (m)",
-      insulation: "Stopnja izolacije",
-      windows: "Razmerje oken",
-      thermostat: "Termostat (na prostor)",
-      receiver: "Sprejemnik (na ploščo)",
-      mounting: "Način montaže",
-
-      windowNormal: "Normalno",
-      windowHigh: "Visoko",
-
-      insulVeryGood: "Zelo dobro (20 W/m³)",
-      insulGood: "Dobro (25 W/m³)",
-      insulAvg: "Povprečno (30 W/m³)",
-      insulOld: "Stara gradnja (35 W/m³)",
-
-      thFT01: "50815 - IPP-FT01 (digitalni)",
-      thBT010: "50435 - BT010 (enostaven)",
-
-      recvUP: "vgradni brezžični sprejemnik",
-      recvAP: "nadometni brezžični sprejemnik",
-
-      mountWW: "Stena (WW)",
-      mountDW: "Spuščen strop (DW)",
-      mountDC: "Neposredni strop (DC)",
-
-      demand: "Potreba",
-      option: "Predlog",
-      warningMax: "⚠️ Opozorilo: Največ",
-      page: "Stran",
-    },
-  };
-
-  const t = (key) => translations[lang][key];
-
-  // ------------------------------------------------------------
-  // Dämmstandard
-  // ------------------------------------------------------------
+  /* ============================================================
+     DÄMMSTANDARDS (jetzt mehrsprachig)
+  ============================================================ */
   const insulationOptions = [
-    { key: "insulVeryGood", value: "20" },
-    { key: "insulGood", value: "25" },
-    { key: "insulAvg", value: "30" },
-    { key: "insulOld", value: "35" },
+    { label: t("insulation_20"), value: "20" },
+    { label: t("insulation_25"), value: "25" },
+    { label: t("insulation_30"), value: "30" },
+    { label: t("insulation_35"), value: "35" },
   ];
 
-  // ------------------------------------------------------------
-  // Heizplatten-Modelle
-  // ------------------------------------------------------------
+  /* ============================================================
+     MODELLLISTEN (NICHT übersetzt – Produktnamen bleiben!)
+  ============================================================ */
   const plateOptions = {
     WW: [
       { name: "50448 - SIKU IPP 160 WW", power: 160 },
@@ -277,20 +283,9 @@ export default function App() {
     ],
   };
 
-  // ------------------------------------------------------------
-  // Zubehör-Texte
-  // ------------------------------------------------------------
-  const getReceiver = (code) =>
-    code === "BT003"
-      ? `50437 - BT003 (${t("recvAP")})`
-      : `50648 - IPP-R01 (${t("recvUP")})`;
-
-  const getThermostat = (code) =>
-    code === "BT010" ? t("thBT010") : t("thFT01");
-
-  // ------------------------------------------------------------
-  // Maximalanzahl
-  // ------------------------------------------------------------
+  /* ============================================================
+     MAX PLATTEN PRO RAUM
+  ============================================================ */
   function getMaxPlates(area) {
     if (area <= 10) return 1;
     if (area <= 15) return 2;
@@ -301,26 +296,31 @@ export default function App() {
     return 8;
   }
 
-  // ------------------------------------------------------------
-  // Raumberechnung
-  // ------------------------------------------------------------
-  function calculateRoom(room) {
+  const getReceiver = (code) =>
+    code === "BT003"
+      ? "50437 - BT003 (Aufputz-Funkempfänger)"
+      : "50648 - IPP-R01 (Unterputz-Funkempfänger)";
+
+  const getThermostat = (code) =>
+    code === "BT010"
+      ? "50435 - BT010 (einfach)"
+      : "50815 - IPP-FT01 (digital)";
+
+  /* ============================================================
+     BERECHNUNG PRO RAUM
+  ============================================================ */
+  function calculateRoom(room, langCode) {
     const factor = parseInt(room.insulation, 10);
     const volume = room.area * room.height;
 
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
-
-    const lower = room.name.toLowerCase();
-    if (lower.includes("bad") || lower.includes("wc") || lower.includes("dusche"))
-      windowFactor *= 1.15;
+    if (room.name.toLowerCase().includes("bad")) windowFactor *= 1.15;
 
     const need = Math.round(volume * factor * windowFactor);
-
-    const models = plateOptions[room.mounting] || [];
+    const models = plateOptions[room.mounting] ?? [];
     if (!models.length) return { need, text: "N/A" };
 
     const sorted = [...models].sort((a, b) => b.power - a.power);
-
     const combos = sorted.map((m) => ({
       model: m,
       count: Math.ceil(need / m.power),
@@ -328,57 +328,55 @@ export default function App() {
     }));
 
     const valid = combos.filter((c) => c.total >= need);
-    if (!valid.length) return { need, text: "N/A" };
-
     valid.sort((a, b) =>
       a.count === b.count ? a.total - b.total : a.count - b.count
     );
 
     const s1 = valid[0];
-    const s2 = valid[1];
+    const s2 = valid[1] ?? null;
 
     const max = getMaxPlates(room.area);
+    const warning = s1.count > max ? getWarningText(langCode, max, s1.count) : "";
 
-    const warn =
-      s1.count > max
-        ? `${t("warningMax")} ${max}`
-        : "";
+    const sug1 = translations[langCode].suggestion1;
+    const sug2 = translations[langCode].suggestion2;
 
     const extra1 =
       room.mounting === "DW"
         ? `, ${s1.count} × 50432 - IPP-DAS Deckenabhängeset`
         : "";
 
-    const extra2 =
-      room.mounting === "DW" && s2
-        ? `, ${s2.count} × 50432 - IPP-DAS Deckenabhängeset`
-        : "";
-
-    const txt = [
-      `${t("option")} 1: ${s1.count} × ${s1.model.name} (${s1.model.power} W)
--> ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}${extra1}`,
+    const lines = [
+      `${sug1}: ${s1.count} × ${s1.model.name} (${s1.model.power} W)
+-> ${s1.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(
+        room.thermostat
+      )}${extra1}`,
     ];
 
     if (s2) {
-      txt.push(
-        `\n${t("option")} 2: ${s2.count} × ${s2.model.name} (${s2.model.power} W)
--> ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(room.thermostat)}${extra2}`
+      const extra2 =
+        room.mounting === "DW"
+          ? `, ${s2.count} × 50432 - IPP-DAS Deckenabhängeset`
+          : "";
+      lines.push(
+        `\n${sug2}: ${s2.count} × ${s2.model.name} (${s2.model.power} W)
+-> ${s2.count} × ${getReceiver(room.receiver)}, 1 × ${getThermostat(
+          room.thermostat
+        )}${extra2}`
       );
     }
 
-    return { need, text: txt.join("\n"), warning: warn };
+    return { need, text: lines.join("\n"), warning };
   }
 
-  // ------------------------------------------------------------
-  // Raumverwaltung
-  // ------------------------------------------------------------
-  const [rooms, setRooms] = useState([]);
-
+  /* ============================================================
+     RÄUME VERWALTEN
+  ============================================================ */
   const addRoom = () =>
     setRooms([
       ...rooms,
       {
-        name: `${t("roomName")} ${rooms.length + 1}`,
+        name: `Raum ${rooms.length + 1}`,
         area: 0,
         height: 2.5,
         insulation: "30",
@@ -389,9 +387,9 @@ export default function App() {
       },
     ]);
 
-  // ------------------------------------------------------------
-  // PDF-Export
-  // ------------------------------------------------------------
+  /* ============================================================
+     PDF EXPORT
+  ============================================================ */
   const exportPDF = () => {
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = 210;
@@ -409,21 +407,24 @@ export default function App() {
 
       yPos += 10;
 
-      if (projectName) pdf.text(`${t("project")}: ${projectName}`, margin, yPos);
-      if (projectAddress) pdf.text(`${t("address")}: ${projectAddress}`, margin, yPos + 5);
-      if (projectEmail) pdf.text(`${t("email")}: ${projectEmail}`, margin, yPos + 10);
-      yPos += 20;
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      if (projectName) pdf.text(`${t("projectLabel")} ${projectName}`, margin, yPos);
+      if (projectAddress)
+        pdf.text(`${t("addressLabel")} ${projectAddress}`, margin, yPos + 5);
+      if (projectEmail)
+        pdf.text(`${t("emailLabel")} ${projectEmail}`, margin, yPos + 10);
 
+      yPos += 20;
       pdf.setDrawColor(37, 89, 161);
-      pdf.setLineWidth(0.4);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
       yPos += 8;
     };
 
     const drawFooter = () => {
-      const page = pdf.internal.getNumberOfPages();
+      const p = pdf.internal.getNumberOfPages();
       pdf.setFontSize(9);
-      pdf.text(`${t("page")} ${page}`, pageWidth / 2, pageHeight - 6, {
+      pdf.text(`${t("pageLabel")} ${p}`, pageWidth / 2, pageHeight - 6, {
         align: "center",
       });
     };
@@ -431,20 +432,20 @@ export default function App() {
     drawHeader();
 
     rooms.forEach((room, idx) => {
-      const r = calculateRoom(room);
+      const r = calculateRoom(room, lang);
 
-      const blockText = [
+      const block = [
         room.name,
-        `${t("demand")}: ${r.need} W`,
+        `${t("demandLabel")}: ${r.need} W`,
         "",
         r.text,
         r.warning ? `\n${r.warning}` : "",
       ].join("\n");
 
-      const split = pdf.splitTextToSize(blockText, pageWidth - 2 * margin);
-      const blockHeight = split.length * 5 + 12;
+      const lines = pdf.splitTextToSize(block, pageWidth - 2 * margin);
+      const height = lines.length * 5 + 12;
 
-      if (yPos + blockHeight > pageHeight - margin) {
+      if (yPos + height > pageHeight - margin) {
         drawFooter();
         pdf.addPage();
         yPos = margin;
@@ -458,82 +459,92 @@ export default function App() {
 
       pdf.setFontSize(11);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`${t("demand")}: ${r.need} W`, margin, yPos);
+      pdf.text(`${t("demandLabel")}: ${r.need} W`, margin, yPos);
       yPos += 6;
 
       pdf.setFontSize(10);
-      pdf.text(split, margin, yPos);
-      yPos += split.length * 5;
+      pdf.text(lines, margin, yPos);
+      yPos += lines.length * 5 + 5;
 
       if (r.warning) {
-        yPos += 3;
         pdf.setTextColor(200, 0, 0);
         pdf.text(r.warning, margin, yPos);
         pdf.setTextColor(0, 0, 0);
+        yPos += 8;
       }
 
-      yPos += 12;
+      if (idx < rooms.length - 1) {
+        pdf.setDrawColor(37, 89, 161);
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
+      }
     });
 
     drawFooter();
 
-    pdf.save("SIKU_Kalkulation.pdf");
+    const filename = projectName
+      ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
+      : "SIKU_Empfehlungs_Kalkulation.pdf";
+
+    pdf.save(filename);
   };
 
-  // ------------------------------------------------------------
-  // RENDERING
-  // ------------------------------------------------------------
+  /* ============================================================
+     UI RENDERING
+  ============================================================ */
   return (
     <div className="container">
-      {/* LANGUAGE SWITCH */}
-      <div style={{ textAlign: "right", marginBottom: 10 }}>
-        <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value)}
-          style={{ padding: 6 }}
-        >
-          <option value="de">Deutsch</option>
-          <option value="en">English</option>
-          <option value="da">Dansk</option>
-          <option value="hr">Hrvatski</option>
-          <option value="sl">Slovensko</option>
-        </select>
-      </div>
-
       <header>
-        <img src="/siku_logo.png" alt="SIKU Logo" />
-        <h1>{t("appTitle")}</h1>
+        <div className="header-left">
+          <img src="/siku_logo.png" alt="SIKU Logo" />
+          <h1>{t("appTitle")}</h1>
+        </div>
+
+        <div className="lang-switch no-print">
+          {LANGS.map((l) => (
+            <button
+              key={l.code}
+              className={"lang-btn" + (lang === l.code ? " active" : "")}
+              onClick={() => setLang(l.code)}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="card no-print">
         <h2>{t("projectData")}</h2>
+
         <input
           type="text"
-          placeholder={t("project")}
+          placeholder={t("projectNamePlaceholder")}
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
         />
+
         <input
           type="text"
-          placeholder={t("address")}
+          placeholder={t("addressPlaceholder")}
           value={projectAddress}
           onChange={(e) => setProjectAddress(e.target.value)}
         />
+
         <input
           type="email"
-          placeholder={t("email")}
+          placeholder={t("emailPlaceholder")}
           value={projectEmail}
           onChange={(e) => setProjectEmail(e.target.value)}
         />
       </div>
 
       <div className="card">
-        <h2>{t("rooms")}</h2>
+        <h2>{t("roomsTitle")}</h2>
 
         {rooms.length === 0 && <p>{t("noRooms")}</p>}
 
         {rooms.map((room, index) => {
-          const r = calculateRoom(room);
+          const r = calculateRoom(room, lang);
           return (
             <div key={index} className="room">
               <button
@@ -591,12 +602,12 @@ export default function App() {
                 >
                   {insulationOptions.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {t(o.key)}
+                      {o.label}
                     </option>
                   ))}
                 </select>
 
-                <label>{t("windows")}</label>
+                <label>{t("windowShare")}</label>
                 <select
                   value={room.windows}
                   onChange={(e) => {
@@ -618,11 +629,11 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="FT01">{t("thFT01")}</option>
-                  <option value="BT010">{t("thBT010")}</option>
+                  <option value="FT01">50815 - IPP-FT01 (digital)</option>
+                  <option value="BT010">50435 - BT010 (einfach)</option>
                 </select>
 
-                <label>{t("receiver")}</label>
+                <label>{t("receiverLabel")}</label>
                 <select
                   value={room.receiver}
                   onChange={(e) => {
@@ -631,8 +642,12 @@ export default function App() {
                     setRooms(n);
                   }}
                 >
-                  <option value="R01">{`50648 - IPP-R01 (${t("recvUP")})`}</option>
-                  <option value="BT003">{`50437 - BT003 (${t("recvAP")})`}</option>
+                  <option value="R01">
+                    50648 - IPP-R01 (Unterputz-Funkempfänger)
+                  </option>
+                  <option value="BT003">
+                    50437 - BT003 (Aufputz-Funkempfänger)
+                  </option>
                 </select>
 
                 <label>{t("mounting")}</label>
@@ -653,7 +668,8 @@ export default function App() {
               <div className="result">
                 <strong>{room.name}</strong>
                 <p>
-                  <strong>{t("demand")}:</strong> {r.need} W
+                  <strong>{t("demandLabel")}:</strong>{" "}
+                  <strong>{r.need} W</strong>
                 </p>
                 <pre>{r.text}</pre>
                 {r.warning && (
@@ -669,10 +685,10 @@ export default function App() {
 
       <div className="no-print">
         <button onClick={addRoom} className="add-room-btn">
-          {t("addRoom")}
+          {t("addRoomBtn")}
         </button>
         <button onClick={exportPDF} className="pdf-btn">
-          {t("pdf")}
+          {t("pdfBtn")}
         </button>
       </div>
     </div>
