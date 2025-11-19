@@ -279,8 +279,30 @@ function getWarningText(lang, max, count) {
 /* ============================================================
    HAUPTKOMPONENTE
 ============================================================ */
+/* ============================================================
+   URL-SPRACHE ERKENNEN
+============================================================ */
+function getInitialLang() {
+  if (typeof window === "undefined") return "de";
+
+  const params = new URLSearchParams(window.location.search);
+  const urlLang = params.get("lang");
+
+  const allowed = ["de", "en", "da", "hr", "sl"];
+
+  if (urlLang && allowed.includes(urlLang.toLowerCase())) {
+    return urlLang.toLowerCase();
+  }
+  return "de";
+}
+
+/* ============================================================
+   HAUPTKOMPONENTE
+============================================================ */
 export default function App() {
-  const [lang, setLang] = useState("de");
+  // ⬅️ Sprache nun dynamisch!
+  const [lang, setLang] = useState(getInitialLang());
+
   const [projectName, setProjectName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [projectEmail, setProjectEmail] = useState("");
