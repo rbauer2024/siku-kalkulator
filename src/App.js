@@ -61,6 +61,10 @@ const translations = {
 
     suggestion1: "Vorschlag 1",
     suggestion2: "Vorschlag 2",
+
+    summaryTitle: "Artikel-Zusammenfassung",
+    summarySuggestion1: "Vorschlag 1 – Gesamt",
+    summarySuggestion2: "Vorschlag 2 – Gesamt",
   },
 
   /* ======================== ENGLISH ======================== */
@@ -110,6 +114,10 @@ const translations = {
 
     suggestion1: "Option 1",
     suggestion2: "Option 2",
+
+    summaryTitle: "Article Summary",
+    summarySuggestion1: "Option 1 – Total",
+    summarySuggestion2: "Option 2 – Total",
   },
 
   /* ======================== DÄNISCH ======================== */
@@ -159,6 +167,10 @@ const translations = {
 
     suggestion1: "Forslag 1",
     suggestion2: "Forslag 2",
+
+    summaryTitle: "Artikeloversigt",
+    summarySuggestion1: "Forslag 1 – I alt",
+    summarySuggestion2: "Forslag 2 – I alt",
   },
 
   /* ======================== KROATISCH ======================== */
@@ -208,6 +220,10 @@ const translations = {
 
     suggestion1: "Prijedlog 1",
     suggestion2: "Prijedlog 2",
+
+    summaryTitle: "Sažetak artikala",
+    summarySuggestion1: "Prijedlog 1 – Ukupno",
+    summarySuggestion2: "Prijedlog 2 – Ukupno",
   },
 
   /* ======================== SLOWENISCH ======================== */
@@ -257,10 +273,16 @@ const translations = {
 
     suggestion1: "Predlog 1",
     suggestion2: "Predlog 2",
+
+    summaryTitle: "Povzetek artiklov",
+    summarySuggestion1: "Predlog 1 – Skupaj",
+    summarySuggestion2: "Predlog 2 – Skupaj",
   },
 };
 
-/* WARNUNGEN MEHRSPRACHIG */
+/* ============================================================
+   WARNUNGEN MEHRSPRACHIG
+============================================================ */
 function getWarningText(lang, max, count) {
   switch (lang) {
     case "en":
@@ -276,9 +298,7 @@ function getWarningText(lang, max, count) {
       return `⚠️ Achtung: Maximal ${max} Platten empfohlen, benötigt wären ${count}.`;
   }
 }
-/* ============================================================
-   HAUPTKOMPONENTE
-============================================================ */
+
 /* ============================================================
    URL-SPRACHE ERKENNEN
 ============================================================ */
@@ -293,6 +313,7 @@ function getInitialLang() {
   if (urlLang && allowed.includes(urlLang.toLowerCase())) {
     return urlLang.toLowerCase();
   }
+
   return "de";
 }
 
@@ -300,7 +321,6 @@ function getInitialLang() {
    HAUPTKOMPONENTE
 ============================================================ */
 export default function App() {
-  // ⬅️ Sprache nun dynamisch!
   const [lang, setLang] = useState(getInitialLang());
 
   const [projectName, setProjectName] = useState("");
@@ -312,7 +332,7 @@ export default function App() {
     translations[lang][key] ?? translations.de[key] ?? key;
 
   /* ============================================================
-     DÄMMSTANDARD (übersetzt)
+     DÄMMSTANDARD
   ============================================================= */
   const insulationOptions = [
     { label: t("insulation_20"), value: "20" },
@@ -322,7 +342,7 @@ export default function App() {
   ];
 
   /* ============================================================
-     PRODUKTOPTIONS (nicht übersetzt – Produktnamen bleiben!)
+     PRODUKTOPTIONS
   ============================================================= */
   const plateOptions = {
     WW: [
@@ -348,7 +368,7 @@ export default function App() {
   };
 
   /* ============================================================
-     EMPFÄNGER (übersetzter Zusatztext)
+     EMPFÄNGER
   ============================================================= */
   const getReceiver = (code) =>
     code === "BT003"
@@ -356,7 +376,7 @@ export default function App() {
       : `50648 - IPP-R01 ${t("rc_flush")}`;
 
   /* ============================================================
-     THERMOSTATE (übersetzter Zusatztext)
+     THERMOSTATE
   ============================================================= */
   const getThermostat = (code) =>
     code === "BT010"
@@ -384,11 +404,23 @@ export default function App() {
     const volume = room.area * room.height;
 
     let windowFactor = room.windows === "hoch" ? 1.1 : 1.0;
-    if (room.name.toLowerCase().includes("bad")) windowFactor *= 1.15;
+
+    if (room.name.toLowerCase().includes("bad")) {
+      windowFactor *= 1.15;
+    }
 
     const need = Math.round(volume * factor * windowFactor);
     const models = plateOptions[room.mounting] ?? [];
-    if (!models.length) return { need, text: "N/A" };
+
+    if (!models.length) {
+      return {
+        need,
+        text: "N/A",
+        warning: "",
+        summary1: [],
+        summary2: [],
+      };
+    }
 
     const sorted = [...models].sort((a, b) => b.power - a.power);
 
@@ -399,6 +431,7 @@ export default function App() {
     }));
 
     const valid = combos.filter((c) => c.total >= need);
+
     valid.sort((a, b) =>
       a.count === b.count ? a.total - b.total : a.count - b.count
     );
@@ -407,12 +440,18 @@ export default function App() {
     const s2 = valid[1] ?? null;
 
     const max = getMaxPlates(room.area);
-    const warning = s1.count > max ? getWarningText(langCode, max, s1.count) : "";
+
+    const warning =
+      s1.count > max
+        ? getWarningText(langCode, max, s1.count)
+        : "";
 
     const sug1 = translations[langCode].suggestion1;
     const sug2 = translations[langCode].suggestion2;
 
-    // DW → automatisch Deckenabhängeset
+    /* ------------------------------------------------------------
+       DW → automatisch Deckenabhängeset
+    ------------------------------------------------------------ */
     const extra1 =
       room.mounting === "DW"
         ? `, ${s1.count} × 50432 - IPP-DAS Deckenabhängeset`
@@ -439,7 +478,64 @@ export default function App() {
       );
     }
 
-    return { need, text: lines.join("\n"), warning };
+    /* ------------------------------------------------------------
+       Strukturierte Artikellisten für PDF-Zusammenfassung
+    ------------------------------------------------------------ */
+    const summary1 = [
+      {
+        article: s1.model.name,
+        count: s1.count,
+      },
+      {
+        article: getReceiver(room.receiver),
+        count: s1.count,
+      },
+      {
+        article: getThermostat(room.thermostat),
+        count: 1,
+      },
+    ];
+
+    if (room.mounting === "DW") {
+      summary1.push({
+        article: "50432 - IPP-DAS Deckenabhängeset",
+        count: s1.count,
+      });
+    }
+
+    const summary2 = [];
+
+    if (s2) {
+      summary2.push(
+        {
+          article: s2.model.name,
+          count: s2.count,
+        },
+        {
+          article: getReceiver(room.receiver),
+          count: s2.count,
+        },
+        {
+          article: getThermostat(room.thermostat),
+          count: 1,
+        }
+      );
+
+      if (room.mounting === "DW") {
+        summary2.push({
+          article: "50432 - IPP-DAS Deckenabhängeset",
+          count: s2.count,
+        });
+      }
+    }
+
+    return {
+      need,
+      text: lines.join("\n"),
+      warning,
+      summary1,
+      summary2,
+    };
   }
 
   /* ============================================================
@@ -465,45 +561,98 @@ export default function App() {
   ============================================================= */
   const exportPDF = () => {
     const pdf = new jsPDF("p", "mm", "a4");
+
     const pageWidth = 210;
     const pageHeight = 297;
     const margin = 15;
+
     let yPos = margin;
 
+    /* ------------------------------------------------------------
+       HEADER
+    ------------------------------------------------------------ */
     const header = () => {
-      pdf.addImage("/siku_logo.png", "PNG", pageWidth / 2 - 22, yPos, 44, 15);
+      pdf.addImage(
+        "/siku_logo.png",
+        "PNG",
+        pageWidth / 2 - 22,
+        yPos,
+        44,
+        15
+      );
+
       yPos += 23;
 
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(16);
       pdf.setTextColor(37, 89, 161);
-      pdf.text(t("appTitle"), pageWidth / 2, yPos, { align: "center" });
+
+      pdf.text(t("appTitle"), pageWidth / 2, yPos, {
+        align: "center",
+      });
 
       yPos += 10;
 
       pdf.setFontSize(10);
       pdf.setTextColor(0, 0, 0);
-      if (projectName) pdf.text(`${t("projectLabel")} ${projectName}`, margin, yPos);
-      if (projectAddress)
-        pdf.text(`${t("addressLabel")} ${projectAddress}`, margin, yPos + 5);
-      if (projectEmail)
-        pdf.text(`${t("emailLabel")} ${projectEmail}`, margin, yPos + 10);
+
+      if (projectName) {
+        pdf.text(
+          `${t("projectLabel")} ${projectName}`,
+          margin,
+          yPos
+        );
+      }
+
+      if (projectAddress) {
+        pdf.text(
+          `${t("addressLabel")} ${projectAddress}`,
+          margin,
+          yPos + 5
+        );
+      }
+
+      if (projectEmail) {
+        pdf.text(
+          `${t("emailLabel")} ${projectEmail}`,
+          margin,
+          yPos + 10
+        );
+      }
 
       yPos += 20;
+
       pdf.setDrawColor(37, 89, 161);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
+
       yPos += 8;
     };
 
+    /* ------------------------------------------------------------
+       FOOTER
+    ------------------------------------------------------------ */
     const footer = () => {
       const n = pdf.internal.getNumberOfPages();
+
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
-      pdf.text(`${t("pageLabel")} ${n}`, pageWidth / 2, pageHeight - 6, {
-        align: "center",
-      });
+      pdf.setTextColor(0, 0, 0);
+
+      pdf.text(
+        `${t("pageLabel")} ${n}`,
+        pageWidth / 2,
+        pageHeight - 6,
+        {
+          align: "center",
+        }
+      );
     };
 
     header();
 
+    /* ============================================================
+       EINZELNE RÄUME
+    ============================================================= */
     rooms.forEach((room, idx) => {
       const r = calculateRoom(room, lang);
 
@@ -515,46 +664,264 @@ export default function App() {
         r.warning ? `\n${r.warning}` : "",
       ].join("\n");
 
-      const lines = pdf.splitTextToSize(blockText, pageWidth - 2 * margin);
+      const lines = pdf.splitTextToSize(
+        blockText,
+        pageWidth - 2 * margin
+      );
+
       const heightNeeded = lines.length * 5 + 12;
 
       if (yPos + heightNeeded > pageHeight - margin) {
         footer();
+
         pdf.addPage();
+
         yPos = margin;
         header();
       }
 
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(12);
       pdf.setTextColor(37, 89, 161);
+
       pdf.text(room.name, margin, yPos);
+
       yPos += 6;
 
       pdf.setFontSize(11);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`${t("demandLabel")}: ${r.need} W`, margin, yPos);
+
+      pdf.text(
+        `${t("demandLabel")}: ${r.need} W`,
+        margin,
+        yPos
+      );
+
       yPos += 6;
 
       pdf.setFontSize(10);
+
       pdf.text(lines, margin, yPos);
+
       yPos += lines.length * 5 + 5;
 
       if (r.warning) {
         pdf.setTextColor(200, 0, 0);
+
         pdf.text(r.warning, margin, yPos);
+
         pdf.setTextColor(0, 0, 0);
+
         yPos += 8;
       }
 
       if (idx < rooms.length - 1) {
         pdf.setDrawColor(37, 89, 161);
-        pdf.line(margin, yPos, pageWidth - margin, yPos);
+
+        pdf.line(
+          margin,
+          yPos,
+          pageWidth - margin,
+          yPos
+        );
+
         yPos += 10;
       }
     });
 
     footer();
 
+    /* ============================================================
+       ARTIKEL-ZUSAMMENFASSUNG
+    ============================================================= */
+    if (rooms.length > 0) {
+      const totals1 = {};
+      const totals2 = {};
+
+      /* ----------------------------------------------------------
+         Gleiche Artikel summieren
+      ---------------------------------------------------------- */
+      const addToTotals = (totals, items) => {
+        items.forEach((item) => {
+          if (!totals[item.article]) {
+            totals[item.article] = 0;
+          }
+
+          totals[item.article] += item.count;
+        });
+      };
+
+      rooms.forEach((room) => {
+        const r = calculateRoom(room, lang);
+
+        addToTotals(totals1, r.summary1 || []);
+        addToTotals(totals2, r.summary2 || []);
+      });
+
+      /* ----------------------------------------------------------
+         Neue Seite
+      ---------------------------------------------------------- */
+      pdf.addPage();
+
+      yPos = margin;
+
+      header();
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(15);
+      pdf.setTextColor(37, 89, 161);
+
+      pdf.text(
+        t("summaryTitle"),
+        margin,
+        yPos
+      );
+
+      yPos += 11;
+
+      /* ==========================================================
+         VORSCHLAG 1
+      ========================================================== */
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(37, 89, 161);
+
+      pdf.text(
+        t("summarySuggestion1"),
+        margin,
+        yPos
+      );
+
+      yPos += 6;
+
+      pdf.setDrawColor(37, 89, 161);
+      pdf.setLineWidth(0.3);
+
+      pdf.line(
+        margin,
+        yPos,
+        pageWidth - margin,
+        yPos
+      );
+
+      yPos += 7;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+
+      Object.entries(totals1).forEach(
+        ([article, count]) => {
+          const articleLines =
+            pdf.splitTextToSize(
+              `${count} × ${article}`,
+              pageWidth - 2 * margin
+            );
+
+          if (
+            yPos + articleLines.length * 5 >
+            pageHeight - 15
+          ) {
+            footer();
+
+            pdf.addPage();
+
+            yPos = margin;
+            header();
+          }
+
+          pdf.text(
+            articleLines,
+            margin,
+            yPos
+          );
+
+          yPos +=
+            articleLines.length * 5 + 2;
+        }
+      );
+
+      yPos += 9;
+
+      /* ==========================================================
+         VORSCHLAG 2
+      ========================================================== */
+      if (Object.keys(totals2).length > 0) {
+        if (yPos > pageHeight - 50) {
+          footer();
+
+          pdf.addPage();
+
+          yPos = margin;
+          header();
+        }
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.setTextColor(37, 89, 161);
+
+        pdf.text(
+          t("summarySuggestion2"),
+          margin,
+          yPos
+        );
+
+        yPos += 6;
+
+        pdf.setDrawColor(37, 89, 161);
+        pdf.setLineWidth(0.3);
+
+        pdf.line(
+          margin,
+          yPos,
+          pageWidth - margin,
+          yPos
+        );
+
+        yPos += 7;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(10);
+        pdf.setTextColor(0, 0, 0);
+
+        Object.entries(totals2).forEach(
+          ([article, count]) => {
+            const articleLines =
+              pdf.splitTextToSize(
+                `${count} × ${article}`,
+                pageWidth - 2 * margin
+              );
+
+            if (
+              yPos + articleLines.length * 5 >
+              pageHeight - 15
+            ) {
+              footer();
+
+              pdf.addPage();
+
+              yPos = margin;
+              header();
+            }
+
+            pdf.text(
+              articleLines,
+              margin,
+              yPos
+            );
+
+            yPos +=
+              articleLines.length * 5 + 2;
+          }
+        );
+      }
+
+      footer();
+    }
+
+    /* ============================================================
+       DATEINAME
+    ============================================================= */
     const filename = projectName
       ? `SIKU_${projectName.replace(/\s+/g, "_")}.pdf`
       : "SIKU_Empfehlungs_Kalkulation.pdf";
@@ -569,7 +936,11 @@ export default function App() {
     <div className="container">
       <header>
         <div className="header-left">
-          <img src="/siku_logo.png" alt="SIKU Logo" />
+          <img
+            src="/siku_logo.png"
+            alt="SIKU Logo"
+          />
+
           <h1>{t("appTitle")}</h1>
         </div>
 
@@ -577,8 +948,15 @@ export default function App() {
           {LANGS.map((l) => (
             <button
               key={l.code}
-              className={"lang-btn" + (lang === l.code ? " active" : "")}
-              onClick={() => setLang(l.code)}
+              className={
+                "lang-btn" +
+                (lang === l.code
+                  ? " active"
+                  : "")
+              }
+              onClick={() =>
+                setLang(l.code)
+              }
             >
               {l.label}
             </button>
@@ -586,171 +964,300 @@ export default function App() {
         </div>
       </header>
 
+      {/* ========================================================
+          PROJEKTDATEN
+      ======================================================== */}
       <div className="card no-print">
         <h2>{t("projectData")}</h2>
 
         <input
           type="text"
-          placeholder={t("projectNamePlaceholder")}
+          placeholder={t(
+            "projectNamePlaceholder"
+          )}
           value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
+          onChange={(e) =>
+            setProjectName(e.target.value)
+          }
         />
 
         <input
           type="text"
-          placeholder={t("addressPlaceholder")}
+          placeholder={t(
+            "addressPlaceholder"
+          )}
           value={projectAddress}
-          onChange={(e) => setProjectAddress(e.target.value)}
+          onChange={(e) =>
+            setProjectAddress(e.target.value)
+          }
         />
 
         <input
           type="email"
-          placeholder={t("emailPlaceholder")}
+          placeholder={t(
+            "emailPlaceholder"
+          )}
           value={projectEmail}
-          onChange={(e) => setProjectEmail(e.target.value)}
+          onChange={(e) =>
+            setProjectEmail(e.target.value)
+          }
         />
       </div>
 
+      {/* ========================================================
+          RÄUME
+      ======================================================== */}
       <div className="card">
         <h2>{t("roomsTitle")}</h2>
 
-        {rooms.length === 0 && <p>{t("noRooms")}</p>}
+        {rooms.length === 0 && (
+          <p>{t("noRooms")}</p>
+        )}
 
         {rooms.map((room, index) => {
-          const r = calculateRoom(room, lang);
+          const r = calculateRoom(
+            room,
+            lang
+          );
+
           return (
-            <div key={index} className="room">
+            <div
+              key={index}
+              className="room"
+            >
               <button
                 className="delete-room-btn no-print"
                 onClick={() =>
-                  setRooms(rooms.filter((_, i) => i !== index))
+                  setRooms(
+                    rooms.filter(
+                      (_, i) =>
+                        i !== index
+                    )
+                  )
                 }
               >
                 ❌
               </button>
 
               <div className="inputs no-print">
-                <label>{t("roomName")}</label>
+                <label>
+                  {t("roomName")}
+                </label>
+
                 <input
                   type="text"
                   value={room.name}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].name = e.target.value;
+
+                    n[index].name =
+                      e.target.value;
+
                     setRooms(n);
                   }}
                 />
 
-                <label>{t("area")}</label>
+                <label>
+                  {t("area")}
+                </label>
+
                 <input
                   type="number"
                   value={room.area}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].area = parseFloat(e.target.value || 0);
+
+                    n[index].area =
+                      parseFloat(
+                        e.target.value || 0
+                      );
+
                     setRooms(n);
                   }}
                 />
 
-                <label>{t("height")}</label>
+                <label>
+                  {t("height")}
+                </label>
+
                 <input
                   type="number"
                   step="0.1"
                   value={room.height}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].height = parseFloat(e.target.value || 0);
+
+                    n[index].height =
+                      parseFloat(
+                        e.target.value || 0
+                      );
+
                     setRooms(n);
                   }}
                 />
 
-                <label>{t("insulation")}</label>
+                <label>
+                  {t("insulation")}
+                </label>
+
                 <select
-                  value={room.insulation}
+                  value={
+                    room.insulation
+                  }
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].insulation = e.target.value;
+
+                    n[index].insulation =
+                      e.target.value;
+
                     setRooms(n);
                   }}
                 >
-                  {insulationOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
+                  {insulationOptions.map(
+                    (o) => (
+                      <option
+                        key={o.value}
+                        value={o.value}
+                      >
+                        {o.label}
+                      </option>
+                    )
+                  )}
                 </select>
 
-                <label>{t("windowShare")}</label>
+                <label>
+                  {t("windowShare")}
+                </label>
+
                 <select
                   value={room.windows}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].windows = e.target.value;
+
+                    n[index].windows =
+                      e.target.value;
+
                     setRooms(n);
                   }}
                 >
-                  <option value="normal">{t("windowNormal")}</option>
-                  <option value="hoch">{t("windowHigh")}</option>
+                  <option value="normal">
+                    {t("windowNormal")}
+                  </option>
+
+                  <option value="hoch">
+                    {t("windowHigh")}
+                  </option>
                 </select>
 
-                <label>{t("thermostat")}</label>
+                <label>
+                  {t("thermostat")}
+                </label>
+
                 <select
-                  value={room.thermostat}
+                  value={
+                    room.thermostat
+                  }
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].thermostat = e.target.value;
+
+                    n[index].thermostat =
+                      e.target.value;
+
                     setRooms(n);
                   }}
                 >
                   <option value="FT01">
-                    50815 - IPP-FT01 {t("th_digital")}
+                    50815 - IPP-FT01{" "}
+                    {t("th_digital")}
                   </option>
+
                   <option value="BT010">
-                    50435 - BT010 {t("th_basic")}
+                    50435 - BT010{" "}
+                    {t("th_basic")}
                   </option>
                 </select>
 
-                <label>{t("receiverLabel")}</label>
+                <label>
+                  {t("receiverLabel")}
+                </label>
+
                 <select
                   value={room.receiver}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].receiver = e.target.value;
+
+                    n[index].receiver =
+                      e.target.value;
+
                     setRooms(n);
                   }}
                 >
                   <option value="R01">
-                    50648 - IPP-R01 {t("rc_flush")}
+                    50648 - IPP-R01{" "}
+                    {t("rc_flush")}
                   </option>
+
                   <option value="BT003">
-                    50437 - BT003 {t("rc_surface")}
+                    50437 - BT003{" "}
+                    {t("rc_surface")}
                   </option>
                 </select>
 
-                <label>{t("mounting")}</label>
+                <label>
+                  {t("mounting")}
+                </label>
+
                 <select
                   value={room.mounting}
                   onChange={(e) => {
                     const n = [...rooms];
-                    n[index].mounting = e.target.value;
+
+                    n[index].mounting =
+                      e.target.value;
+
                     setRooms(n);
                   }}
                 >
-                  <option value="WW">{t("mountWW")}</option>
-                  <option value="DW">{t("mountDW")}</option>
-                  <option value="DC">{t("mountDC")}</option>
+                  <option value="WW">
+                    {t("mountWW")}
+                  </option>
+
+                  <option value="DW">
+                    {t("mountDW")}
+                  </option>
+
+                  <option value="DC">
+                    {t("mountDC")}
+                  </option>
                 </select>
               </div>
 
+              {/* ==================================================
+                  ERGEBNIS
+              ================================================== */}
               <div className="result">
-                <strong>{room.name}</strong>
+                <strong>
+                  {room.name}
+                </strong>
+
                 <p>
-                  <strong>{t("demandLabel")}:</strong>{" "}
-                  <strong>{r.need} W</strong>
+                  <strong>
+                    {t("demandLabel")}:
+                  </strong>{" "}
+                  <strong>
+                    {r.need} W
+                  </strong>
                 </p>
+
                 <pre>{r.text}</pre>
+
                 {r.warning && (
-                  <p style={{ color: "red", fontWeight: "bold" }}>
+                  <p
+                    style={{
+                      color: "red",
+                      fontWeight: "bold",
+                    }}
+                  >
                     {r.warning}
                   </p>
                 )}
@@ -760,11 +1267,21 @@ export default function App() {
         })}
       </div>
 
+      {/* ========================================================
+          BUTTONS
+      ======================================================== */}
       <div className="no-print">
-        <button onClick={addRoom} className="add-room-btn">
+        <button
+          onClick={addRoom}
+          className="add-room-btn"
+        >
           {t("addRoomBtn")}
         </button>
-        <button onClick={exportPDF} className="pdf-btn">
+
+        <button
+          onClick={exportPDF}
+          className="pdf-btn"
+        >
           {t("pdfBtn")}
         </button>
       </div>
